@@ -1,0 +1,233 @@
+//暂时定义输出语句是printf("%s=%d%c",vars[i].c_str(),variables[vars[i]]," \n"[i == vars.size() - 1]);暂时禁止print()不带参。
+//目前已实现：
+/*
+1-声明变量、几乎全套表达式(包括赋值的右结合、逗号运算符)、while循环。
+2-唯一入口为main，main未设置参数。
+*/
+//入口只能为main
+
+/*旧版本支持声明+赋值，新版本不支持了
+4
+int lca = 0x22;int _c_l = 0b110;
+lca += 05 * (_c_l + lca) * 0b101;
+_c_l = 555;//int _c_l=555;会报重复定义的错
+print(lca,_c_l,lca);
+//lca=1034 _c_l=555 lca=1034
+
+5
+int a = 3;int b = 250;int c = -1;
+a -= (b + a) * a;
+b %=- c + a+1000;
+c += 0b11*(04+0x1);/*c=14*/
+print(a,b,c);
+//a=-756 b=5 c=14
+*/
+
+10
+int main(){
+    int int0,_aA1,a,b;a = 2,b = 1;
+    int0 = 3;_aA1 = 4;
+    while(a>=b&&int0<4){
+        a *=(b+(1));
+        a%=(b+=(a<<=(2))),int0-=-1;
+    }
+    _aA1 += int0;
+    print(_aA1,int0,a,b);
+}
+//_aA1=8 int0=4 a=16 b=17
+
+//a未定义
+6
+int main(){
+    int lca,_c_l;lca = 0x22;_c_l = 0b110;
+    lca += 05 * (_c_l + lca) * 0b101;
+    _c_l = 555;//int _c_l=555;会报重复定义的错
+    print(lca,_c_l,lca);//print(lca,_c_l,lca,a);
+}
+//lca=1034 _c_l=555 lca=1034
+
+//各种进制的支持
+10
+int kk(){}
+int main(){
+    int a,b,c;
+    a = 3;b = 250;c = -0b1;
+    print(a,b,c);
+    a -= (b + a) * a;
+    b %=- c + a+1000;
+    c += 0b11*(04+0x1);/*c=14*/
+    print(a,b,c);
+}
+//a=-756 b=5 c=14
+
+//连续赋值
+7
+int main(){
+int a,__b,ccf;
+print(a,__b,ccf);
+a=0x10;ccf=308;__b=555;
+a*=ccf%=__b-=a=(a+1)*(a+2);//a*=ccf;
+print(a,__b,ccf);
+}
+//a=18054 __b=249 ccf=59
+
+9
+int main(){
+    int A,C,M,G;
+    A=(1<2)&&(3>4);G=1<=0||0*0||2<2&&3>3;
+    C=-!(5^5);
+    A*=A+=A+=1+1;
+    M = 3;
+    M+=A*=A+1;
+    print(A,C,A,M,G);
+}
+//A=272 C=-1 A=272 M=275 G=0
+
+6
+int main(){
+    int a,__b,ccf;a=1,__b=2,ccf=3;
+    a=(__b<<=1,ccf);
+    a+=(ccf+=-__b);
+    print(a,__b,ccf);
+}
+//a=2 __b=4 ccf=-1
+4
+int main(){
+int _a_,_b_,_c_;_a_=1,_b_=20,_c_=3;_a_=_b_>>=1,_a_<<=3;
+print(_a_,_b_);//80 10
+}
+4
+int main(){
+int _a_,_b_,_c_;_a_=1,_b_=20,_c_=3;_a_+=(_b_>>=1,_a_<<=3);
+print(_a_,_b_);//16 10
+}
+
+5
+int main(){
+    int a,s;s=a=0;print(a,s);
+    while(a<=100) a+=1,s+=a;
+    print(a,s);//a=101 s=5151
+}
+
+6
+int main(){
+    int x,y;x=0,y=10;
+    while(x<y){
+        int z;z=x*x;print(z,x);x+=1;
+    }
+}
+
+19
+int main(){
+    int f0,f1,f2;f0 = f1 = 1;
+    while(f2<20000){
+        int i;i=2;
+        while(i<=8){
+            f2=f1+f0;
+            f0=f1;f1=f2;
+            i+=1;
+        }print(i);//一次算7项
+        print(f2,f1,f0);
+    }
+    f0=f1=1;//print(f2,i);//确实检测出了i不在作用域内
+    int i;i=2;
+    while(i<30){
+        f2=f1+f0;f0=f1;f1=f2;
+        print(i,f2);
+        i+=1;
+    }
+}
+
+19
+int main(){
+    int a,b,c,A,B,C;A=2,B=3,C=5;
+    while(a<A){
+        b=0;
+        int bb;bb=a+b+c;
+        while(b<B){
+            c=0;
+            while(c<C){
+                int jj;jj=c+1;print(jj);
+                print(a,b,c);
+                c+=1,bb+=1;
+                print(bb);
+            }
+            b+=1;
+            print(b,bb);
+        }
+        a+=1;
+    }
+}
+/*jj=1
+a=0 b=0 c=0
+bb=1
+jj=2
+a=0 b=0 c=1
+bb=2
+jj=3
+a=0 b=0 c=2
+bb=3
+jj=4
+a=0 b=0 c=3
+bb=4
+jj=5
+a=0 b=0 c=4
+bb=5
+b=1 bb=5
+jj=1
+a=0 b=1 c=0
+bb=6
+jj=2
+a=0 b=1 c=1
+bb=7
+jj=3
+a=0 b=1 c=2
+bb=8
+jj=4
+a=0 b=1 c=3
+bb=9
+jj=5
+a=0 b=1 c=4
+bb=10
+b=2 bb=10
+jj=1
+a=0 b=2 c=0
+bb=11
+jj=2
+a=0 b=2 c=1
+bb=12
+jj=3
+a=0 b=2 c=2
+bb=13
+jj=4
+a=0 b=2 c=3
+bb=14
+jj=5
+a=0 b=2 c=4
+bb=15
+b=3 bb=15
+以下略，反正是正常滴~*/
+
+19
+int main(){
+    int i,kk;i=0;kk=(i+10)^(i+1000);print(kk);
+    while((i<<=1)<50){
+        int j,kk;j=0;kk=114514;
+        while(j<10){
+            int _0_interesting;_0_interesting=j;
+            print(_0_interesting);
+            j+=2,i+=1;
+        }
+        int _0_interesting;print(_0_interesting,kk);_0_interesting=33;
+        while(j<20){
+            print(_0_interesting,kk);//
+            j+=3,i+=1;
+        }
+        _0_interesting+=_0_interesting<<=1;
+        print(i,kk,_0_interesting);
+    }
+    print(i,kk);//print(j);//检测出未定义j
+}
+//屏蔽效应：外部kk=994，内部114514。最后2行输出：
+i=27 kk=114514 _0_interesting=132
+i=54 kk=994
