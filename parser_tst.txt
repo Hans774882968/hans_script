@@ -231,3 +231,15 @@ int main(){
 //屏蔽效应：外部kk=994，内部114514。最后2行输出：
 i=27 kk=114514 _0_interesting=132
 i=54 kk=994
+
+10
+int a,b,c;//作用域测试正常
+int main(){
+    b=2;
+    d=e=f=(a=b+=0x32,c=c^1)+5;
+    print(a,b,c,d,e,f);//a=8 b=8 c=-8 d=8 e=4 f=1
+    int a,b,c,d,e,f;
+    e=(d=2,3),a+=b-=c-=d*=e+=f=1;
+    print(a,b,c,d,e,f);//a=52 b=52 c=1 d=6 e=6 f=6
+}
+int d,e,f;

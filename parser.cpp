@@ -56,8 +56,13 @@ class Parser{
                 if(code[p].code != 1){
                     printf("Unsupported type at global scope: '%s'\n",code[p].token.c_str());return false;
                 }
+                if(code[p + 1].code != 0){
+                    printf("Illegal function name: '%s'\n",code[p + 1].token.c_str());return false;
+                }
                 if(code[p + 2].token != "("){
-                    if(!declaration(p).fl) return false;
+                    Ret nx = declaration(p);
+                    if(!nx.fl) return false;
+                    p = nx.ed;
                 }
                 else{
                     func[code[p + 1].token] = p;
