@@ -36,18 +36,25 @@ class Parser{
     public:
         Parser(){variables.push_back(map<string,int>());}
         Parser(vector<Node> lex_unit):code(lex_unit){variables.push_back(map<string,int>());}
+        virtual ~Parser(){
+            cout << "~Parser()" << endl;
+        }
         
-        bool match_bracket(int st,int &ed){
-            int brket = 1;ed = st + 1;
-            //特意安排了这些括号相邻："(",")","[","]","{","}"
-            for(;ed < code.size() && brket != 0;++ed){
-                if(code[ed].code == code[st].code) brket++;
-                else if(code[ed].code == code[st].code + 1) brket--;
+        Ret match_bracket(int st){
+            int brkt = 1,ed = st + 1;
+            if(code[st].token != "(" && code[st].token != "[" && code[st].token != "{"){
+                printf("Expected bracket but get token: '%s'\n",code[st].token.c_str());
+                return {false,0,0};
             }
-            if(brket != 0){
-                printf("Bracket '%s' doesn`t match.\n",code[st].token);return false;
+            //特意安排了这些括号"(",")","[","]","{","}"的code相邻
+            for(;ed < code.size() && brkt != 0;++ed){
+                if(code[ed].code == code[st].code) brkt++;
+                else if(code[ed].code == code[st].code + 1) brkt--;
             }
-            return true;
+            if(brkt != 0){
+                printf("Bracket '%s' doesn`t match.\n",code[st].token.c_str());return {false,0,0};
+            }
+            return {true,0,ed};
         }
         //全局范围，要么是函数要么是声明语句
         bool func_and_var(){
@@ -59,22 +66,23 @@ class Parser{
                 if(code[p + 1].code != 0){
                     printf("Illegal function name: '%s'\n",code[p + 1].token.c_str());return false;
                 }
+                Ret nx;
                 if(code[p + 2].token != "("){
-                    Ret nx = declaration(p);
+                    nx = declaration(p);
                     if(!nx.fl) return false;
-                    p = nx.ed;
                 }
                 else{
                     func[code[p + 1].token] = p;
-                    int p1;bool fl = match_bracket(p + 2,p1);
-                    if(!fl) return fl;
+                    nx = match_bracket(p + 2);
+                    if(!nx.fl) return false;
+                    int p1 = nx.ed;
                     if(code[p1].token != "{"){
-                        puts("Function body should start with '{'!");
-                        return false;
+                        puts("Function body should start with '{'!");return false;
                     }
-                    fl = match_bracket(p1,p);
-                    if(!fl) return fl;
+                    nx = match_bracket(p1);
+                    if(!nx.fl) return false;
                 }
+                p = nx.ed;
             }
             return true;
         }
@@ -86,12 +94,44 @@ class Parser{
             return -1;
         }
         //p是分号的位置
-        Ret parse_semicolon(int p){
+        Ret parse_semicolon(int p,int ret_val = 0){
             if(code[p].token != ";"){
                 printf("Expected ';' but get token: '%s'\n",code[p].token.c_str());
                 return {false,0,0};
             }
-            ++p;return {true,0,p};
+            ++p;return {true,ret_val,p};
+        }
+        //找到每种控制结构语句的结束位置。它顺便做了括号匹配的检查，调用者无需再检查。
+        Ret next_statement(int p){
+            if(code[p].token == "while" || code[p].token == "for"){
+                Ret nx = match_bracket(p + 1);
+                if(!nx.fl) return nx;
+                return find_end_pos(nx.ed,code[p].token);
+            }
+            else if(code[p].token == "if"){
+                Ret nx = match_bracket(p + 1);
+                if(!nx.fl) return nx;
+                nx = find_end_pos(nx.ed,code[p].token);
+                if(!nx.fl) return nx;
+                if(code[nx.ed].token != "else") return nx;
+                return next_statement(nx.ed);
+            }
+            else if(code[p].token == "else"){
+                ++p;
+                if(code[p].token == "if") return next_statement(p);
+                return find_end_pos(p,"else");
+            }
+            return find_end_pos(p,"");
+        }
+        
+        Ret find_end_pos(int p,string name){
+            if(code[p].token == "{" || code[p].token == "[" || code[p].token == "(") return match_bracket(p);
+            if(code[p].token == "if" || code[p].token == "else" || code[p].token == "while" || code[p].token == "for" || code[p].token == "do") return next_statement(p);//若无括号且为控制结构语句，则递归调用next_statement找到正确结束位置
+            for(;p < code.size() && code[p].token != ";";++p);
+            if(p >= code.size()){//找下一个分号
+                printf("Expected ';' at '%s' statement.\n",name.c_str());return {false,0,0};
+            }
+            return {true,0,++p};
         }
         
         Ret unit0(int p){
@@ -127,11 +167,11 @@ class Parser{
         }
         Ret unit1(int p){
             Ret nx = unit0(p);
-            if(!nx.fl) return {false,0,0};
+            if(!nx.fl) return nx;
             string op = code[nx.ed].token;
             while(op == "*" || op == "/" || op == "%"){
                 Ret nx1 = unit0(nx.ed + 1);
-                if(!nx1.fl) return {false,0,0};
+                if(!nx1.fl) return nx1;
                 if(op == "*") nx.val *= nx1.val;
                 if(op == "/") nx.val /= nx1.val;//暂不处理ZeroDivisionError
                 if(op == "%") nx.val %= nx1.val;//暂不处理ZeroDivisionError
@@ -142,11 +182,11 @@ class Parser{
         }
         Ret unit2(int p){
             Ret nx = unit1(p);
-            if(!nx.fl) return {false,0,0};
+            if(!nx.fl) return nx;
             string op = code[nx.ed].token;
             while(op == "+" || op == "-"){
                 Ret nx1 = unit1(nx.ed + 1);
-                if(!nx1.fl) return {false,0,0};
+                if(!nx1.fl) return nx1;
                 if(op == "+") nx.val += nx1.val;
                 if(op == "-") nx.val -= nx1.val;
                 nx.ed = nx1.ed;
@@ -156,11 +196,11 @@ class Parser{
         }
         Ret unit3(int p){
             Ret nx = unit2(p);
-            if(!nx.fl) return {false,0,0};
+            if(!nx.fl) return nx;
             string op = code[nx.ed].token;
             while(op == "<" || op == "<=" || op == ">" || op == ">="){
                 Ret nx1 = unit2(nx.ed + 1);
-                if(!nx1.fl) return {false,0,0};
+                if(!nx1.fl) return nx1;
                 if(op == "<") nx.val = (nx.val < nx1.val);
                 if(op == "<=") nx.val = (nx.val <= nx1.val);
                 if(op == ">") nx.val = (nx.val > nx1.val);
@@ -172,11 +212,11 @@ class Parser{
         }
         Ret unit4(int p){
             Ret nx = unit3(p);
-            if(!nx.fl) return {false,0,0};
+            if(!nx.fl) return nx;
             string op = code[nx.ed].token;
             while(op == "==" || op == "!="){
                 Ret nx1 = unit3(nx.ed + 1);
-                if(!nx1.fl) return {false,0,0};
+                if(!nx1.fl) return nx1;
                 if(op == "==") nx.val = (nx.val == nx1.val);
                 if(op == "!=") nx.val = (nx.val != nx1.val);
                 nx.ed = nx1.ed;
@@ -186,11 +226,11 @@ class Parser{
         }
         Ret unit5(int p){
             Ret nx = unit4(p);
-            if(!nx.fl) return {false,0,0};
+            if(!nx.fl) return nx;
             string op = code[nx.ed].token;
             while(op == "^"){
                 Ret nx1 = unit4(nx.ed + 1);
-                if(!nx1.fl) return {false,0,0};
+                if(!nx1.fl) return nx1;
                 if(op == "^") nx.val ^= nx1.val;
                 nx.ed = nx1.ed;
                 op = code[nx1.ed].token;
@@ -199,11 +239,11 @@ class Parser{
         }
         Ret unit6(int p){
             Ret nx = unit5(p);
-            if(!nx.fl) return {false,0,0};
+            if(!nx.fl) return nx;
             string op = code[nx.ed].token;
             while(op == "&&"){
                 Ret nx1 = unit5(nx.ed + 1);
-                if(!nx1.fl) return {false,0,0};
+                if(!nx1.fl) return nx1;
                 if(op == "&&") nx.val = (nx.val && nx1.val);
                 nx.ed = nx1.ed;
                 op = code[nx1.ed].token;
@@ -212,11 +252,11 @@ class Parser{
         }
         Ret unit7(int p){
             Ret nx = unit6(p);
-            if(!nx.fl) return {false,0,0};
+            if(!nx.fl) return nx;
             string op = code[nx.ed].token;
             while(op == "||"){
                 Ret nx1 = unit6(nx.ed + 1);
-                if(!nx1.fl) return {false,0,0};
+                if(!nx1.fl) return nx1;
                 if(op == "||") nx.val = (nx.val || nx1.val);
                 nx.ed = nx1.ed;
                 op = code[nx1.ed].token;
@@ -225,7 +265,7 @@ class Parser{
         }
         //赋值
         Ret unit8(int p){
-            Ret nx = unit7(p);if(!nx.fl) return {false,0,0};
+            Ret nx = unit7(p);if(!nx.fl) return nx;
             string op = code[nx.ed].token;
             if(op == "=" || op == "+=" || op == "-=" || op == "*=" || op == "/=" || op == "%=" || op == "<<=" || op == ">>=" || op == "^="){
                 if(nx.ed - p != 1 || code[p].code != 0){
@@ -236,7 +276,7 @@ class Parser{
                     printf("Variable '%s' was not declared in this scope.\n",var.c_str());return {false,0,0};
                 }
                 Ret nx1 = unit8(nx.ed + 1);
-                if(!nx1.fl) return {false,0,0};
+                if(!nx1.fl) return nx1;
                 //易错点：直接操作，而非先操作变量r。r作为返回值记得设置。
                 if(op == "=") variables[scope_ptr][var] = nx1.val;
                 else if(op == "+=") variables[scope_ptr][var] += nx1.val;
@@ -254,10 +294,10 @@ class Parser{
         //逗号运算符
         Ret unit9(int p){
             Ret nx = unit8(p);
-            if(!nx.fl) return {false,0,0};
+            if(!nx.fl) return nx;
             while(code[nx.ed].token == ","){
                 nx = unit8(nx.ed + 1);
-                if(!nx.fl) return {false,0,0};
+                if(!nx.fl) return nx;
             }
             return nx;
         }
@@ -299,74 +339,128 @@ class Parser{
             re_(i,0,vars.size()) printf("%s=%d%c",vars[i].first.c_str(),vars[i].second," \n"[i == vars.size() - 1]);//暂时采用的定义
             return {true,0,nx.ed};
         }
+        //所有循环暂不支持条件部分为空，因为还没有实现break;
         Ret while_statement(int p){
-            ++p;//skip "while"
-            if(code[p].token != "("){
-                printf("Expected '(' but get token: %s\n",code[p].token.c_str());return {false,0,0};
-            }
-            int tp = ++p;
+            Ret ed_obj = next_statement(p);
+            if(!ed_obj.fl) return ed_obj;
+            int tp = p + 2;
             while(true){
-                Ret nx = unit9(p);
-                if(!nx.fl) return {false,0,0};
-                p = nx.ed;
-                if(code[p].token != ")"){
-                    printf("Expected ')' but get token: %s\n",code[p].token.c_str());return {false,0,0};
+                if(code[tp].token == ")"){
+                    puts("Because we don`t have 'break', we don`t support null condition in whileloop as well.");
+                    return {false,0,0};
                 }
-                int ed = ++p;//skip ")"
-                if(code[p].token == "{"){
-                    bool fl = match_bracket(p,ed);
-                    if(!fl) return {false,0,0};
-                }
-                else{
-                    for(;ed < code.size() && code[ed].token != ";";++ed);
-                    if(ed >= code.size()){
-                        puts("Expected ';' at while statement.");return {false,0,0};
-                    }
-                    ++ed;
-                }
-                if(!nx.val) return {true,0,ed};//指向while循环结束的地方
-                if(code[p].token == "{"){
-                    ++p;if(!statements(p)) return {false,0,0};
-                }
-                else{
-                    Ret nx = statement(p);
-                    if(!nx.fl) return {false,0,0};
-                }
-                p = tp;//指针移回原位
+                Ret nx = unit9(tp);if(!nx.fl) return nx;
+                if(!nx.val) return ed_obj;//满足退出条件，指向while结束的地方
+                //nx.ed + 1可能是"{"或其他
+                if(!statements(nx.ed + 1,ed_obj.ed)) return {false,0,0};
             }
-            return {true,0,0};//不会运行到这
+            return {true,-1,-1};//不会运行到这
+        }
+        Ret for_statement(int p){
+            Ret ed_obj = next_statement(p);
+            if(!ed_obj.fl) return ed_obj;
+            int tp = p + 2;
+            Ret rig_brkt = match_bracket(p + 1);//next_statement()已保证括号匹配
+            variables.push_back(map<string,int>());//新建作用域
+            if(code[tp].code == 0){
+                Ret nx = expres_statement(tp);
+                if(!nx.fl) return nx;
+                tp = nx.ed;
+            }
+            else if(code[tp].code == 1){
+                Ret nx = declaration(tp);
+                if(!nx.fl) return nx;
+                tp = nx.ed;
+            }
+            else if(code[tp].token == ";") ++tp;//空语句
+            else{
+                puts("Illegal init statement at forloop.");
+                return {false,0,0};
+            }
+            vector<string> preserve_list;
+            for(auto x: variables.back()) preserve_list.push_back(x.first);
+            while(true){
+                if(code[tp].token == ";"){
+                    puts("Because we don`t have 'break', we don`t support null condition in forloop as well.");
+                    return {false,0,0};
+                }
+                //tp、nx.ed分别是1st、2nd ";"的下一个位置
+                Ret nx = expres_statement(tp);if(!nx.fl) return nx;
+                if(!nx.val){
+                    variables.pop_back();//销毁作用域
+                    return ed_obj;//满足退出条件，指向for结束的地方
+                }
+                //rig_brkt.ed可能是"{"或其他
+                if(!statements(rig_brkt.ed,ed_obj.ed,0)) return {false,0,0};
+                if(code[nx.ed].token != ")"){//非空语句
+                    nx = unit9(nx.ed);if(!nx.fl) return nx;
+                }
+                //保留在init部分声明的变量,其余删除
+                map<string,int> preserve_vars;
+                for(auto plst: preserve_list) preserve_vars[plst] = variables.back()[plst];
+                variables[variables.size() - 1] = preserve_vars;
+            }
+            return {true,-1,-1};//不会运行到这
+        }
+        Ret if_statement(int p){
+            Ret ed_obj = next_statement(p);
+            if(!ed_obj.fl) return ed_obj;
+            int tp = p + 2;
+            Ret nx = unit9(tp);if(!nx.fl) return nx;
+            p = nx.ed + 1;
+            Ret else_obj = find_end_pos(p,"if");
+            int else_pos = else_obj.ed;
+            if(!nx.val){
+                if(code[else_pos].token == "else"){
+                    ++else_pos;
+                    if(code[else_pos].token == "if") return statement(else_pos);
+                    //若else后无if
+                    if(!statements(else_pos,find_end_pos(else_pos,"else").ed)) return {false,0,0};
+                }
+                return ed_obj;
+            }
+            if(!statements(p,else_pos)) return {false,0,0};
+            return ed_obj;
+        }
+        Ret expres_statement(int p){//(非空的)赋值语句
+            Ret nx = unit9(p);
+            if(!nx.fl) return nx;
+            return parse_semicolon(nx.ed,nx.val);
         }
         Ret statement(int p){
             string token = code[p].token;int cod = code[p].code;
             if(token == "print") return print(p);
             else if(token == "while") return while_statement(p);
-            else if(cod == 0){//变量,故为赋值语句
-                Ret nx = unit9(p);
-                if(!nx.fl) return {false,0,0};
-                return parse_semicolon(nx.ed);
-            }
-            //"int",故为声明语句
-            else if(cod == 1) return declaration(p);
-            puts("Invalid declaration statement, assignment statement or function call.");
+            else if(token == "for") return for_statement(p);
+            else if(token == "if") return if_statement(p);
+            else if(token == ";") return {true,0,++p};//空语句
+            else if(cod == 0) return expres_statement(p);
+            else if(cod == 1) return declaration(p);//"int",故为声明语句
+            if(token == "else") puts("Unmatched 'else'.");
+            else puts("We can`t support such statement currently.");
             return {false,0,0};
         }
-        //语句的集合，一定包含在"{}"内。注意statements()不跳过"}"
-        bool statements(int p){
-            variables.push_back(map<string,int>());//新建作用域
-            Ret nx = statement(p);
-            if(!nx.fl) return false;
-            string symb = code[nx.ed].token;
-            while(symb != "}"){
-                nx = statement(nx.ed);
+        //lim：结束位置,op：新建作用域的数量
+        bool statements(int p,int lim,int op = 1){
+            if(op) variables.push_back(map<string,int>());//新建作用域
+            if(code[p].token != "{"){
+                Ret nx = statement(p);
                 if(!nx.fl) return false;
-                symb = code[nx.ed].token;
             }
-            variables.pop_back();//销毁作用域
+            else if(code[p + 1].token != "}"){//非空body
+                Ret nx = statement(++p);
+                if(!nx.fl) return false;
+                while(nx.ed < lim - 1){
+                    nx = statement(nx.ed);
+                    if(!nx.fl) return false;
+                }
+            }
+            if(op) variables.pop_back();//销毁作用域
             return true;
         }
         //已经确保返回类型都是int。暂时假设只有main一个函数
         bool run_function(int p){
-            return statements(p + 5);
+            return statements(p + 4,match_bracket(p + 4).ed);
         }
         bool analyze(){
             if(!func_and_var()) return false;

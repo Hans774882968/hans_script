@@ -1,10 +1,27 @@
 //暂时定义输出语句是printf("%s=%d%c",vars[i].c_str(),variables[vars[i]]," \n"[i == vars.size() - 1]);暂时禁止print()不带参。
-//目前已实现：
+
 /*
-1-声明变量、几乎全套表达式(包括赋值的右结合、逗号运算符)、while循环。
-2-唯一入口为main，main未设置参数。
+目前已实现：
+1-声明变量、(几乎)表达式全家桶(包括赋值的右结合特性、逗号运算符)、while循环、for循环、if语句。
+2-唯一入口为main，main无参。
+3-支持空语句";"和空body，且支持这种写法：if(a<5)while(b<5)while(c<10){a+=1,b+=1;c+=2;}(即把下一个控制结构语句视为自身的";")
 */
-//入口只能为main
+
+/*
+为了简化实现(我太菜了)，做如下约定：
+1-入口只能为main。
+2-声明变量和赋值必须分开。
+3-内置函数print不能出现在逗号表达式里，即必须单独成语句。如：if(...) print();是合法的。
+4-所有循环暂不支持条件部分为空，因为还没有实现break;
+*/
+//
+//已修复bug：
+1-while循环内单句statement也应该开作用域(虽然在目前声明、赋值分开的规则下无法造成作用域污染)
+2-支持空语句";"和空body，且支持这种写法：if(a<5)while(b<5)while(c<10){a+=1,b+=1;c+=2;}
+3-forloop作用域需要手动管理，即：保留在init部分声明的变量,其余删除。
+
+//未修复bug：
+1-正常的输入代码莫名出现Expected variable but get token: f1，即parser运行不正常(怀疑是c++内存管理的问题?因为运行代码一定次数后才会出现这个bug...目前打了个析构函数以检测这种现象)
 
 /*旧版本支持声明+赋值，新版本不支持了
 4
@@ -36,13 +53,12 @@ int main(){
 }
 //_aA1=8 int0=4 a=16 b=17
 
-//a未定义
 6
 int main(){
     int lca,_c_l;lca = 0x22;_c_l = 0b110;
     lca += 05 * (_c_l + lca) * 0b101;
     _c_l = 555;//int _c_l=555;会报重复定义的错
-    print(lca,_c_l,lca);//print(lca,_c_l,lca,a);
+    print(lca,_c_l,lca);//print(lca,_c_l,lca,a);//a未定义
 }
 //lca=1034 _c_l=555 lca=1034
 
@@ -56,9 +72,8 @@ int main(){
     a -= (b + a) * a;
     b %=- c + a+1000;
     c += 0b11*(04+0x1);/*c=14*/
-    print(a,b,c);
+    print(a,b,c);//a=-756 b=5 c=14
 }
-//a=-756 b=5 c=14
 
 //连续赋值
 7
@@ -117,6 +132,25 @@ int main(){
     }
 }
 
+6
+int main(){
+    int x,y,z;x=y=z=1;
+    while(x<1000) while(y<1000){while(z<1000) x<<=1,y<<=1,z<<=1,x=y=z+=1;}
+    print(x,y,z);//1023
+    int x,y,z;//报错：重复定义
+}
+
+9
+int main()
+{
+    int x,y,z,__;x=y=z=1;
+    while(x<3000){
+        __+=(x<<=1,y<<=1,z<<=1,x=y=z+=1)+1;
+        while(x<2000)x<<=1;
+    }
+    print(x,__);//x=3072 __=4
+}
+
 19
 int main(){
     int f0,f1,f2;f0 = f1 = 1;
@@ -137,6 +171,16 @@ int main(){
         i+=1;
     }
 }
+/*运行这个后：9
+int main()
+{
+    int x,y,z,__;x=y=z=1;
+    while(x<3000){
+        __+=(x<<=1,y<<=1,z<<=1,x=y=z+=1)+1;
+        while(x<2000)x<<=1;
+    }
+    print(x,__);//x=3072 __=4
+}出现如下bug：Expected variable but get token: f1(怀疑是c++内存管理的问题?因为运行代码一定次数后才会出现这个bug...)*/
 
 19
 int main(){
@@ -158,6 +202,10 @@ int main(){
         a+=1;
     }
 }
+/*发现了BUG！！！(不是在第1次运行代码就出现，难以重现，暂时不知道为什么……)
+is lexical legal: true
+Expected variable but get token: A
+is syntax legal: false*/
 /*jj=1
 a=0 b=0 c=0
 bb=1
@@ -237,9 +285,264 @@ int a,b,c;//作用域测试正常
 int main(){
     b=2;
     d=e=f=(a=b+=0x32,c=c^1)+5;
-    print(a,b,c,d,e,f);//a=8 b=8 c=-8 d=8 e=4 f=1
+    print(a,b,c,d,e,f);//a=52 b=52 c=1 d=6 e=6 f=6
     int a,b,c,d,e,f;
     e=(d=2,3),a+=b-=c-=d*=e+=f=1;
-    print(a,b,c,d,e,f);//a=52 b=52 c=1 d=6 e=6 f=6
+    print(a,b,c,d,e,f);//a=8 b=8 c=-8 d=8 e=4 f=1
 }
-int d,e,f;
+int f,e,d;
+
+//以下含if语句
+13
+int main(){
+    int x,y,d,c;c=114514,d=5;
+    if((x=10)>10){
+        y=1;print(e);//不会报错
+    }
+    else{
+        y=2;
+        int c,d;c=1;d=55;
+        while(c<10){int d;d=c+=3;print(c,d);}
+        print(d);
+    }d+=1;
+    print(d,y,c);
+}
+/*c=4 d=4
+c=7 d=7
+c=10 d=10
+d=55
+d=6 y=2 c=114514*/
+
+15
+int a,b,c;
+int main(){
+    a=3;
+    if(a==0){
+        c=11;
+    }
+    else if(a==1);/*{
+        c=2;
+    }*/
+    else if(a==2){c=4;}
+    else{c=6;}
+    if(c==4)c+=6;
+    if(c==6){;;c+=4;;}
+    print(c);
+}
+//c=10
+11
+int a;
+int main(){
+    a=1;
+    while(a<20){
+        if(!(a%2)){b+=2;print(a,b);}
+        else{b+=-1;print(b);}
+        a+=1;
+    }
+    print(b);
+}
+int b;
+/*b=-1
+a=2 b=1
+b=0
+a=4 b=2
+b=1
+a=6 b=3
+b=2
+a=8 b=4
+b=3
+a=10 b=5
+b=4
+a=12 b=6
+b=5
+a=14 b=7
+b=6
+a=16 b=8
+b=7
+a=18 b=9
+b=8
+b=8*/
+
+12
+int a,b;
+int main(){
+    a=2;
+    while(a<10){
+        if(a%2==0)c+=2,b+=1;
+        else{c+=3,b-=2;print(c);}
+        a+=1;
+        print(a);
+    }
+    print(b,c);
+}
+int c;
+/*a=3
+c=5
+a=4
+a=5
+c=10
+a=6
+a=7
+c=15
+a=8
+a=9
+c=20
+a=10
+b=-4 c=20*/
+17
+int main(){
+    int T,tmp;T=7;
+    while(tmp=T,T-=1,tmp){
+        int x,y,n;int ans;
+        if(tmp==7)x=7,y=5,n=12345;
+        else if(tmp==6)x=5,y=0,n=4;
+        else if(tmp==5)x=10,y=5,n=15;
+        else if(tmp==4)x=17,y=8,n=54321;
+        else if(tmp==3)x=499999993,y=9,n=1000000000;
+        else if(tmp==2)x=10,y=5,n=187;
+        else if(tmp==1)x=2,y=0,n=999999999;
+        if (n%x>=y)ans=n-(n%x)+y;
+        else ans=n-(n%x)-x+y;
+        print(ans);
+    }
+    /*print(ans);*/
+}
+/*(cf1374-A)
+ans=12339
+ans=0
+ans=15
+ans=54306
+ans=999999995
+ans=185
+ans=999999998
+*/
+18
+int main(){
+    int ax,bx,cx;ax=-1;
+    while(ax<0b11110){
+        if(0<=ax&&ax<10){bx=0;print(bx);}
+        else if(10<=ax&&ax<20)bx+=0b101;
+        else if(20<=ax&&ax<031){cx-=-0x2;print(bx,cx,ax);}
+        else {;;;;}//cx<<=01;//已经支持空语句
+        if(0<=ax&&ax<10){;;;}//{bx=0;print(bx);}
+        else if(10<=ax&&ax<20)bx+=0b101;
+        else if(20<=ax&&ax<031){cx-=-0x2;print(bx,cx,ax);}
+        else {;;;;}//cx<<=01;//已经支持空语句
+        //else if(ax) cx<<=01;
+        ax+=1;
+    }
+    if(ax>0b11110)ax-=1;
+    else{;}//已经支持空语句
+    print(ax,bx,cx);
+}
+/*bx=100 cx=2 ax=20
+bx=100 cx=4 ax=20
+bx=100 cx=6 ax=21
+bx=100 cx=8 ax=21
+(6 more...)
+ax=30 bx=100 cx=20*/
+
+7
+int main(){
+int a, b, c;
+a = 1; b = 2;
+if(a<=1&&b<0) {;;}//;;;;//加上后报错：Unmatched 'else'.
+else if(b==2) while(a<=10){a+=2;print(a);};;;;
+int d;
+print(a, b, c);}//a=11 b=2 c=0
+
+14
+int main(){
+    int t,T,mx;T=5,mx;
+    while(t=T,T-=1,t){
+        if(t==5) x=0572153000;
+        else if(t==4) x=5;//544541549;
+        else if(t==3) x=0x321541;
+        else if(t==2) x=0x5415163;
+        else if(t==1) x=5;//0x21235135;
+        else if(!t) print(T);
+        if(mx<x)mx=x;
+    }
+    print(mx);//2nd 88166755 1st 99145216
+}
+int x;
+
+//forloop
+23
+int main(){
+    int i;
+    for(int j;i*i<1000;i+=1){
+        j=i*i;print(i,j);//int j;//for循环应只新建1个作用域
+    }
+    print(i);//print(i,j);
+    int sum1,sum2,cnt;
+    for(i=1;i<=100;i+=1){
+        if(i%2) sum1+=i,cnt+=1;
+        else sum2+=i;
+    }
+    print(sum1,sum2,cnt);//sum1=2500 sum2=2550 cnt=50
+    i=1;for(;i<1000;i<<=1);
+    print(i);//1024
+    for(int i;(i+=1)<=5;){
+        int j;j=i;print(i,j);
+        for(int j;(j+=i)<=5;){
+            print(j);
+        }
+        print(i,j);
+    }
+    print(i);
+}
+/*最后一组
+i=1 j=1
+j=1
+j=2
+j=3
+j=4
+j=5
+i=1 j=1
+i=2 j=2
+j=2
+j=4
+i=2 j=2
+i=3 j=3
+j=3
+i=3 j=3
+i=4 j=4
+j=4
+i=4 j=4
+i=5 j=5
+j=5
+i=5 j=5
+*/
+10
+int main(){
+    int i;
+    for(int i;i<10;i+=1){
+        if(!i)i=1;
+        int l;l=1;if(i%2==0)print(l);//
+        for(;l<i;l<<=1);
+        print(i,l);//i=1~10 l=1,2,4,4,8,8,8,8,16(证明l在当前作用域被清空了,而i没有)
+    }
+    print(i);//i=0
+}
+
+4
+int main(){
+int i;
+for(i=1;;i+=1);
+}//Because we don`t have 'break', we don`t support null condition in forloop as well.
+4
+int main(){
+int i;
+while(){}
+}//Because we don`t have 'break', we don`t support null condition in whileloop as well.
+9
+int main(){
+    int i,j,k;
+    for(i=1;i<5;i+=1) for(;j<15;j+=3) k+=1;
+    print(k);
+    for(i=1,k=0;i<5;i+=1) for(int j;j<15;j+=3) k+=1;
+    print(k);
+    for(i=1,k=0;i<7;i+=1) for(int j;j<i*3;j+=3){k+=1;int xx;xx=i*3;print(xx);}
+    print(k);//21=1+...+5+6
+}

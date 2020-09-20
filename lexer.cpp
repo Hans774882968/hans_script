@@ -25,6 +25,9 @@ class Lexer{
     public:
         Lexer(){idx = 0;}
         Lexer(string s):s(s){idx = 0;}
+        virtual ~Lexer(){
+            cout << "~Lexer()" << endl;
+        }
         
         vector<Node> getRes(){return res;}
         static void init(){
