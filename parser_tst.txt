@@ -13,12 +13,14 @@
 2-声明变量和赋值必须分开。
 3-内置函数print不能出现在逗号表达式里，即必须单独成语句。如：if(...) print();是合法的。
 4-所有循环暂不支持条件部分为空，因为还没有实现break;
+5-变量和函数重名时,优先认为它是函数。但是重名几乎必然报错...
 */
 //
 //已修复bug：
 1-while循环内单句statement也应该开作用域(虽然在目前声明、赋值分开的规则下无法造成作用域污染)
 2-支持空语句";"和空body，且支持这种写法：if(a<5)while(b<5)while(c<10){a+=1,b+=1;c+=2;}
-3-forloop作用域需要手动管理，即：保留在init部分声明的变量,其余删除。
+3-forloop作用域需求：保留在init部分声明的变量,其余删除。我们改用一个Manager对象包办所有的作用域管理了。
+4-stmts类需要初始化值，因为控制结构语句依赖它的返回值，若其数据仍然混乱，可能造成未定义的return行为。
 
 //未修复bug：
 1-正常的输入代码莫名出现Expected variable but get token: f1，即parser运行不正常(怀疑是c++内存管理的问题?因为运行代码一定次数后才会出现这个bug...目前打了个析构函数以检测这种现象)
@@ -447,7 +449,7 @@ int main(){
 int a, b, c;
 a = 1; b = 2;
 if(a<=1&&b<0) {;;}//;;;;//加上后报错：Unmatched 'else'.
-else if(b==2) while(a<=10){a+=2;print(a);};;;;
+else if(b==2) while(a<=10){a+=2;print(a);;;};;;;
 int d;
 print(a, b, c);}//a=11 b=2 c=0
 
@@ -490,7 +492,7 @@ int main(){
         }
         print(i,j);
     }
-    print(i);
+    print(i);//1024
 }
 /*最后一组
 i=1 j=1
@@ -520,7 +522,7 @@ int main(){
     for(int i;i<10;i+=1){
         if(!i)i=1;
         int l;if(i%2==0)print(l);//
-        l=1;for(/*l=114514*/;l<i;l<<=1);
+        l=1;for(/*l=114514*/int pp,ppp,pppp;l<i;l<<=1);
         print(i,l);//i=1~9 l=1,2,4,4,8,8,8,8,16(证明l在当前作用域被清空了,而i没有)
     }
     print(i);//i=0
@@ -536,13 +538,19 @@ int main(){
 int i;
 while(){}
 }//Because we don`t have 'break', we don`t support null condition in whileloop as well.
-28
+5
+int main(){
+int i;
+for(i=1;i;int j)i-=1;//Forloop`s 3rd statement should be an expression.
+print(i);
+}
+29
 int main(){
     int i,j,k;
     for(i=1;i<5;i+=1) for(;j<15;j+=3) k+=1;
-    print(k);
+    print(k);//5
     for(i=1,k=0;i<5;i+=1) for(int j;j<15;j+=3) k+=1;
-    print(k);
+    print(k);//20
     for(i=1,k=0;i<7;i+=1) for(int j;j<i*3;j+=3){k+=1;int xx;xx=i*3;print(xx);}
     print(k);//21=1+...+5+6
     i=245;
@@ -551,10 +559,11 @@ int main(){
         if(!(i&1))print(i,j);
         else print(j,i);
     }
+    print(j);//15
     int sum;
     for(int i,j;i<=10;i+=1,j+=1){
         if(!i)i=1,j=1;
-        int tmp;
+        int tmp;/*调试时for_init信息：i:1,j:1,tmp:0，符合预期*/
         if(!tmp) tmp=1;
         for(int k;k<=i;k-=-1){
             if(!k)tmp*=k+1;
@@ -564,4 +573,97 @@ int main(){
         sum+=tmp;
     }
     print(i,j,k,sum);/*屏蔽效应正确时：i=0 j=15 k=21 sum=4037913*/
+}
+
+25
+int main(){
+    int a;
+    for(_outer=1;_outer<=10;_outer+=1)
+        if(!(_outer&1)) a+=f();
+        else a+=g();
+    print(a);
+}
+int f(){
+    int x;x=1;
+    for(int i;i<=_outer;i-=-1){
+        if(!i) x*=i+1;
+        else x*=i;
+    }
+    print(x);
+    return x;
+    x=2;print(x);
+}
+int g(){
+    int ret;
+    for(int i;i<=_outer;i+=2) if(i%2==0) ret+=f();
+    print(ret);
+    return ret;
+    ret=3;print(ret);
+}
+int _outer;
+/*x=1
+ret=1
+x=2
+x=6
+x=6
+ret=12
+x=24
+x=120
+x=120
+x=120
+ret=360
+x=720
+x=5040
+x=5040
+x=5040
+x=5040
+ret=20160
+x=40320
+x=362880
+x=362880
+x=362880
+x=362880
+x=362880
+ret=1814400
+x=3628800
+a=5504799*/
+17
+int out;
+int fac(){
+    if(out<=1)return out;
+    /*int tmp;tmp=out;out-=1;
+    return tmp*fac();*/return ((out-=1)+1)*fac();//等价写法
+}
+int main(){
+    int t;t=1;
+    for(int i,j;i<=10;i+=1){
+        if(!i) out=i+1;
+        else out=i;
+        print(out);
+        int xx;xx=fac();print(xx);
+        t+=xx;
+    }
+    print(t);//4037915
+}
+21
+int func(){//100以内的勾股数
+    int ans;
+    for(int i;i<=100;i+=1){
+        if(!i)i=1;
+        for(int j;j<i;j+=1){
+            if(!j)j=1;
+            for(int k;k<=j;k+=1){
+                if(!k)k=1;
+                if(i*i==j*j+k*k){
+                    print(i,j,k);
+                    ans+=1;
+                }
+            }
+        }
+    }//最后输出：i=100 j=96 k=28
+    return ans;
+}
+int main(){
+    int ans;ans=func();
+    print(ans);//52
 }
