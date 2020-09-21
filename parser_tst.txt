@@ -667,3 +667,22 @@ int main(){
     int ans;ans=func();
     print(ans);//52
 }
+18
+int a,b,mod;
+int qpow(){
+    int ret;ret=1;
+    for(;b;b>>=1){
+        if(b&1)ret=ret*a%mod;
+        a=a*a%mod;
+    }
+    return ret;
+}
+int main(){
+    mod=2333,a=2,b=mod-1;
+    int n1,n2,n3;n1=qpow();
+    a=3,b=mod-1;n2=qpow();
+    a=5,b=mod-1;n3=qpow();
+    a=7,b=mod-2;int n4;n4=qpow();
+    n4=n4*7%mod;
+    print(n1,n2,n3,n4);//全是1
+}

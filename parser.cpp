@@ -97,7 +97,9 @@ struct ScopeManager{
         else if(op == "%=") scopes[found.ed].variables[var].v %= v;//暂不处理ZeroDivisionError
         else if(op == "<<=") scopes[found.ed].variables[var].v <<= v;
         else if(op == ">>=") scopes[found.ed].variables[var].v >>= v;
+        else if(op == "&=") scopes[found.ed].variables[var].v &= v;
         else if(op == "^=") scopes[found.ed].variables[var].v ^= v;
+        else if(op == "|=") scopes[found.ed].variables[var].v |= v;
         return Ret(true,scopes[found.ed].variables[var].v,found.ed,0);
     }
     void del_scope(){
@@ -377,7 +379,7 @@ class Parser{
         Ret unit10(int p){
             Ret nx = unit9(p);if(!nx.fl) return nx;
             string op = code[nx.ed].token;
-            if(op == "=" || op == "+=" || op == "-=" || op == "*=" || op == "/=" || op == "%=" || op == "<<=" || op == ">>=" || op == "^="){
+            if(op == "=" || op == "+=" || op == "-=" || op == "*=" || op == "/=" || op == "%=" || op == "<<=" || op == ">>=" || op == "&=" || op == "^=" || op == "|="){
                 if(nx.ed - p != 1 || code[p].code != 0){
                     printf("lvalue required as left operand of assignment: %s\n",op.c_str());return Ret(false);
                 }
