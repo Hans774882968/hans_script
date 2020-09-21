@@ -316,7 +316,7 @@ d=6 y=2 c=114514*/
 15
 int a,b,c;
 int main(){
-    a=3;
+    a=2;
     if(a==0){
         c=11;
     }
@@ -326,7 +326,7 @@ int main(){
     else if(a==2){c=4;}
     else{c=6;}
     if(c==4)c+=6;
-    if(c==6){;;c+=4;;}
+    if(c==6){;;c+=40;;}
     print(c);
 }
 //c=10
@@ -519,9 +519,9 @@ int main(){
     int i;
     for(int i;i<10;i+=1){
         if(!i)i=1;
-        int l;l=1;if(i%2==0)print(l);//
-        for(;l<i;l<<=1);
-        print(i,l);//i=1~10 l=1,2,4,4,8,8,8,8,16(证明l在当前作用域被清空了,而i没有)
+        int l;if(i%2==0)print(l);//
+        l=1;for(/*l=114514*/;l<i;l<<=1);
+        print(i,l);//i=1~9 l=1,2,4,4,8,8,8,8,16(证明l在当前作用域被清空了,而i没有)
     }
     print(i);//i=0
 }
@@ -536,7 +536,7 @@ int main(){
 int i;
 while(){}
 }//Because we don`t have 'break', we don`t support null condition in whileloop as well.
-9
+28
 int main(){
     int i,j,k;
     for(i=1;i<5;i+=1) for(;j<15;j+=3) k+=1;
@@ -545,4 +545,23 @@ int main(){
     print(k);
     for(i=1,k=0;i<7;i+=1) for(int j;j<i*3;j+=3){k+=1;int xx;xx=i*3;print(xx);}
     print(k);//21=1+...+5+6
+    i=245;
+    for(;i>0;i-=(i&-i)){
+        int j;j=i-(i&-i)+1;
+        if(!(i&1))print(i,j);
+        else print(j,i);
+    }
+    int sum;
+    for(int i,j;i<=10;i+=1,j+=1){
+        if(!i)i=1,j=1;
+        int tmp;
+        if(!tmp) tmp=1;
+        for(int k;k<=i;k-=-1){
+            if(!k)tmp*=k+1;
+            else tmp*=k;
+        }
+        print(tmp,i,j);//tmp=3628800 i=10 j=10
+        sum+=tmp;
+    }
+    print(i,j,k,sum);/*屏蔽效应正确时：i=0 j=15 k=21 sum=4037913*/
 }

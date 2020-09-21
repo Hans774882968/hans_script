@@ -156,7 +156,7 @@ class Parser{
                 return nx;
             }
             else if(u.token == "("){
-                Ret nx = unit9(p);
+                Ret nx = unit11(p);
                 if(code[nx.ed].token != ")"){
                     puts("Syntax error! Wanna ')' token!");return {false,0,0};
                 }
@@ -228,10 +228,10 @@ class Parser{
             Ret nx = unit4(p);
             if(!nx.fl) return nx;
             string op = code[nx.ed].token;
-            while(op == "^"){
+            while(op == "&"){
                 Ret nx1 = unit4(nx.ed + 1);
                 if(!nx1.fl) return nx1;
-                if(op == "^") nx.val ^= nx1.val;
+                if(op == "&") nx.val &= nx1.val;
                 nx.ed = nx1.ed;
                 op = code[nx1.ed].token;
             }
@@ -241,10 +241,10 @@ class Parser{
             Ret nx = unit5(p);
             if(!nx.fl) return nx;
             string op = code[nx.ed].token;
-            while(op == "&&"){
+            while(op == "^"){
                 Ret nx1 = unit5(nx.ed + 1);
                 if(!nx1.fl) return nx1;
-                if(op == "&&") nx.val = (nx.val && nx1.val);
+                if(op == "^") nx.val ^= nx1.val;
                 nx.ed = nx1.ed;
                 op = code[nx1.ed].token;
             }
@@ -254,8 +254,34 @@ class Parser{
             Ret nx = unit6(p);
             if(!nx.fl) return nx;
             string op = code[nx.ed].token;
-            while(op == "||"){
+            while(op == "|"){
                 Ret nx1 = unit6(nx.ed + 1);
+                if(!nx1.fl) return nx1;
+                if(op == "|") nx.val |= nx1.val;
+                nx.ed = nx1.ed;
+                op = code[nx1.ed].token;
+            }
+            return nx;
+        }
+        Ret unit8(int p){
+            Ret nx = unit7(p);
+            if(!nx.fl) return nx;
+            string op = code[nx.ed].token;
+            while(op == "&&"){
+                Ret nx1 = unit7(nx.ed + 1);
+                if(!nx1.fl) return nx1;
+                if(op == "&&") nx.val = (nx.val && nx1.val);
+                nx.ed = nx1.ed;
+                op = code[nx1.ed].token;
+            }
+            return nx;
+        }
+        Ret unit9(int p){
+            Ret nx = unit8(p);
+            if(!nx.fl) return nx;
+            string op = code[nx.ed].token;
+            while(op == "||"){
+                Ret nx1 = unit8(nx.ed + 1);
                 if(!nx1.fl) return nx1;
                 if(op == "||") nx.val = (nx.val || nx1.val);
                 nx.ed = nx1.ed;
@@ -264,8 +290,8 @@ class Parser{
             return nx;
         }
         //赋值
-        Ret unit8(int p){
-            Ret nx = unit7(p);if(!nx.fl) return nx;
+        Ret unit10(int p){
+            Ret nx = unit9(p);if(!nx.fl) return nx;
             string op = code[nx.ed].token;
             if(op == "=" || op == "+=" || op == "-=" || op == "*=" || op == "/=" || op == "%=" || op == "<<=" || op == ">>=" || op == "^="){
                 if(nx.ed - p != 1 || code[p].code != 0){
@@ -275,7 +301,7 @@ class Parser{
                 if(scope_ptr == -1){
                     printf("Variable '%s' was not declared in this scope.\n",var.c_str());return {false,0,0};
                 }
-                Ret nx1 = unit8(nx.ed + 1);
+                Ret nx1 = unit10(nx.ed + 1);
                 if(!nx1.fl) return nx1;
                 //易错点：直接操作，而非先操作变量r。r作为返回值记得设置。
                 if(op == "=") variables[scope_ptr][var] = nx1.val;
@@ -292,11 +318,11 @@ class Parser{
             return nx;
         }
         //逗号运算符
-        Ret unit9(int p){
-            Ret nx = unit8(p);
+        Ret unit11(int p){
+            Ret nx = unit10(p);
             if(!nx.fl) return nx;
             while(code[nx.ed].token == ","){
-                nx = unit8(nx.ed + 1);
+                nx = unit10(nx.ed + 1);
                 if(!nx.fl) return nx;
             }
             return nx;
@@ -349,7 +375,7 @@ class Parser{
                     puts("Because we don`t have 'break', we don`t support null condition in whileloop as well.");
                     return {false,0,0};
                 }
-                Ret nx = unit9(tp);if(!nx.fl) return nx;
+                Ret nx = unit11(tp);if(!nx.fl) return nx;
                 if(!nx.val) return ed_obj;//满足退出条件，指向while结束的地方
                 //nx.ed + 1可能是"{"或其他
                 if(!statements(nx.ed + 1,ed_obj.ed)) return {false,0,0};
@@ -393,7 +419,7 @@ class Parser{
                 //rig_brkt.ed可能是"{"或其他
                 if(!statements(rig_brkt.ed,ed_obj.ed,0)) return {false,0,0};
                 if(code[nx.ed].token != ")"){//非空语句
-                    nx = unit9(nx.ed);if(!nx.fl) return nx;
+                    nx = unit11(nx.ed);if(!nx.fl) return nx;
                 }
                 //保留在init部分声明的变量,其余删除
                 map<string,int> preserve_vars;
@@ -406,7 +432,7 @@ class Parser{
             Ret ed_obj = next_statement(p);
             if(!ed_obj.fl) return ed_obj;
             int tp = p + 2;
-            Ret nx = unit9(tp);if(!nx.fl) return nx;
+            Ret nx = unit11(tp);if(!nx.fl) return nx;
             p = nx.ed + 1;
             Ret else_obj = find_end_pos(p,"if");
             int else_pos = else_obj.ed;
@@ -423,7 +449,7 @@ class Parser{
             return ed_obj;
         }
         Ret expres_statement(int p){//(非空的)赋值语句
-            Ret nx = unit9(p);
+            Ret nx = unit11(p);
             if(!nx.fl) return nx;
             return parse_semicolon(nx.ed,nx.val);
         }
