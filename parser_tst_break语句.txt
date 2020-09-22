@@ -1,0 +1,83 @@
+63
+int main(){
+    int b=1,c=2,d=3,e=15;
+    int a=(b+=c+=d-=e,2*b);
+    print(a,b,c,d,e);//a=-18 b=-9 c=-10 d=-12 e=15
+    int i;
+    for(int i=1;1;i+=1){
+        int fff=(func(),g()*2)+1,f0;
+        for(int ffff=h()+h();ffff-2049<0;ffff+=1) f0=ffff;
+        print(ff,fff,f0);//ff=15 fff=1 f0=2048
+        if(i>=1)break;
+        print(i,i,i,i);//确保没输出
+    }
+    print(i);//0
+}
+int ff=1+5+9;
+int func(){
+    int a=1;
+    for(int i=1;1;i+=1){
+        while(1){
+            if(a>=1000){
+                print(a);
+                break;
+                int a;print(a);
+            }
+            a<<=1;
+        }
+        print(i);
+        if(i>1)break;
+        print(i,i);//确保没有i=2 i=2输出
+    }
+    int b,c,d;print(b,c,d);//确保输出
+    return a;
+}
+int g(){
+    for(int i=1;1;i+=1){
+        int b=2;
+        for(;1;b<<=1){
+            if(b>=1000){
+                print(b);
+                break;
+                print(b,b);//
+            }
+        }
+        print(i);
+        if(i>1)break;
+        print(i,i);//确保没有i=2 i=2输出
+    }
+    int c,d;print(c,d);
+    return 0;
+}
+int h(){
+    int a=ff+1024;
+    if(a>=114514) for(int i=1;i<5;i+=1) print(a);
+    else{
+        print(a,a);
+        a-=ff;
+        /*break;
+        print(a,a,a);*/
+    }
+    int b,c,d;print(b,c,d);
+    //break;//Illegal 'break' statement.
+    return a;
+}
+/*a=-18 b=-9 c=-10 d=-12 e=15
+a=1024
+i=1
+i=1 i=1
+a=1024
+i=2
+b=0 c=0 d=0
+b=1024
+i=1
+i=1 i=1
+b=1024
+i=2
+c=0 d=0
+a=1039 a=1039
+b=0 c=0 d=0
+a=1039 a=1039
+b=0 c=0 d=0
+ff=15 fff=1 f0=2048
+i=0*/

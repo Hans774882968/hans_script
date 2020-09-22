@@ -1,0 +1,169 @@
+68
+int main(){
+    int i=func(),j=g(),k=h();
+    print(i,j,k);
+}
+int ff=1+5+9;
+int func(){
+    int aa=1;
+    for(int i=1;1;i+=1){
+        int a=1;
+        while(1){
+            if(a>=1000){
+                print(a);aa=a;
+                break;
+                int a;print(a);//no exec
+            }
+            else{
+                a<<=1;
+                if(!(i&1)&&i>5&&a>256)print(i,a);
+                continue;
+                print(a,a,a);//no exec
+            }
+            print(a,a,a);//no exec
+        }
+        print(i);
+        if(i>8)break;
+        else continue;
+        print(i,i);//no exec
+    }
+    int b,c,d;print(b,c,d);//确保输出
+    return aa;
+}
+int g(){
+    int bb=10;
+    for(int i=1;1;i+=1){
+        int b=2;
+        for(;1;b<<=1){
+            if(b>=1000){
+                print(b);bb+=b;
+                break;
+                print(b,b);//no exec
+            }
+            else{
+                if(!(i&1)&&i>5&&b>256)print(i,b);
+                continue;
+            }
+            print(b,b);//no exec
+        }
+        print(i);
+        if(i>8)break;
+        else continue;
+        print(i,i);//no exec
+    }
+    int c,d;print(c,d,bb);
+    return bb-=10;
+}
+int h(){
+    int a=ff+1024;
+    if(a>=114514) for(int i=1;i<5;i+=1) print(a);
+    else{
+        print(a,a);
+        a-=ff;
+        /*continue;
+        print(a,a,a);*/
+    }
+    int b,c,d;print(b,c,d);
+    //continue;//Illegal 'continue' statement.
+    return a;
+}
+/*a=1024
+i=1
+a=1024
+i=2
+a=1024
+i=3
+a=1024
+i=4
+a=1024
+i=5
+i=6 a=512
+i=6 a=1024
+a=1024
+i=6
+a=1024
+i=7
+i=8 a=512
+i=8 a=1024
+a=1024
+i=8
+a=1024
+i=9
+b=0 c=0 d=0
+b=1024
+i=1
+b=1024
+i=2
+b=1024
+i=3
+b=1024
+i=4
+b=1024
+i=5
+i=6 b=512
+b=1024
+i=6
+b=1024
+i=7
+i=8 b=512
+b=1024
+i=8
+b=1024
+i=9
+c=0 d=0 bb=9226
+a=1039 a=1039
+b=0 c=0 d=0
+i=1024 j=9216 k=1024*/
+36
+int i;
+int sushu()
+{
+    if(i<=1)
+        return 0;
+    if(i==2)
+        return 2;
+    for(int j=2;j<i;j+=1)
+    {
+        if(i%j==0)
+            return 0;
+        else if(i!=j+1)
+            continue;
+        else
+            return 2;
+    }
+}
+int main()
+{
+    for(int i0=10,xx;(i=i0)<1000;i0+=1)
+        if(sushu())
+            if(i0/100==0)
+            {
+                if(i0/10==i0%10)
+                    print(i0);
+                if(i0%5==0)
+                    print(xx,xx);
+            }
+            else{
+                if(i0/100==i0%10)
+                    print(i0);
+                if(i0%5==0)
+                    print(xx,xx);//else要打框，不打框的话这句认为在for循环外
+            }
+    return 0;
+}
+/*回文素数。i0=11
+i0=101
+i0=131
+i0=151
+i0=181
+i0=191
+i0=313
+i0=353
+i0=373
+i0=383
+i0=727
+i0=757
+i0=787
+i0=797
+i0=919
+i0=929*/

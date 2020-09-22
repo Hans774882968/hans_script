@@ -21,7 +21,7 @@ int to_int(string d){
 
 /*自定义返回类型，使解析过程方便
 不合法时返回：Ret(false);*/
-const int CMD_RETURN = 1;
+const int CMD_RETURN = 1,CMD_BREAK = 2,CMD_CONTINUE = 3;
 struct Ret{
     bool fl;int val;//返回值
     int ed;//终止位置(为了避免使用全局下标，同时解决通信问题)
@@ -39,7 +39,7 @@ struct Var{
     Var(int v,int for_init):v(v),for_init(for_init){}
 };
 //作用域类型(默认建立全局作用域)
-const int SCP_GLOBAL = -1,SCP_FUNC = 1,SCP_WHILE = 2,SCP_FOR = 3,SCP_IF = 4;
+const int SCP_GLOBAL = -1,SCP_FUNC = 1,SCP_WHILE = 2,SCP_FOR = 3,SCP_IF = 4,SCP_DOWHILE = 5;
 struct Scope{
     map<string,Var> variables;int typ;
     Scope(){typ = SCP_GLOBAL;}
@@ -110,6 +110,14 @@ struct ScopeManager{
     //仅for循环使用
     void truly_del_scope(){
         scopes.pop_back();
+    }
+    bool has_loop_scope(string loop_name){
+        dwn(i,scopes.size() - 1,1){
+            if(scopes[i].typ == SCP_WHILE || scopes[i].typ == SCP_FOR || scopes[i].typ == SCP_DOWHILE) return true;
+            if(scopes[i].typ == SCP_FUNC) break;
+        }
+        printf("Illegal '%s' statement.\n",loop_name.c_str());
+        return false;
     }
 };
 
@@ -455,7 +463,11 @@ class Parser{
                     return Ret(false);
                 }
                 Ret nx = unit11(tp);if(!nx.fl) return nx;
-                if(!nx.val || stmts.cmd == CMD_RETURN) return Ret(true,stmts.val,ed_obj.ed,stmts.cmd);//满足退出条件，指向while结束的地方
+                if(!nx.val || stmts.cmd == CMD_RETURN || stmts.cmd == CMD_BREAK){
+                    //满足退出条件，指向while结束的地方
+                    if(stmts.cmd == CMD_BREAK) return Ret(true,0,ed_obj.ed,0);
+                    return Ret(true,stmts.val,ed_obj.ed,stmts.cmd);
+                }
                 stmts = statements(nx.ed + 1,ed_obj.ed,SCP_WHILE);//nx.ed + 1是"{"或其他
                 if(!stmts.fl) return Ret(false);
             }
@@ -486,9 +498,11 @@ class Parser{
                 }
                 //tp、nx.ed分别是1st、2nd ";"的下一个位置
                 Ret nx = expres_statement(tp);if(!nx.fl) return nx;
-                if(!nx.val || stmts.cmd == CMD_RETURN){
+                if(!nx.val || stmts.cmd == CMD_RETURN || stmts.cmd == CMD_BREAK){
                     spmgr.truly_del_scope();//真实的销毁作用域
-                    return Ret(true,stmts.val,ed_obj.ed,stmts.cmd);//满足退出条件，指向for结束的地方
+                    //满足退出条件，指向for结束的地方
+                    if(stmts.cmd == CMD_BREAK) return Ret(true,0,ed_obj.ed,0);
+                    return Ret(true,stmts.val,ed_obj.ed,stmts.cmd);
                 }
                 stmts = statements(rig_brkt.ed,ed_obj.ed,SCP_FOR,0);//rig_brkt.ed是"{"或其他
                 if(!stmts.fl) return Ret(false);
@@ -545,6 +559,16 @@ class Parser{
                 if(!nx.fl) return nx;
                 return Ret(true,nx.val,0,CMD_RETURN);
             }
+            else if(token == "break"){
+                if(!spmgr.has_loop_scope("break")) return Ret(false);
+                if(!parse_semicolon(p + 1).fl) return Ret(false);
+                return Ret(true,0,0,CMD_BREAK);
+            }
+            else if(token == "continue"){
+                if(!spmgr.has_loop_scope("continue")) return Ret(false);
+                if(!parse_semicolon(p + 1).fl) return Ret(false);
+                return Ret(true,0,0,CMD_CONTINUE);
+            }
             else if(cod == 0) return expres_statement(p);
             else if(cod == 1) return declaration(p);//"int",故为声明语句
             if(token == "else") puts("Unmatched 'else'.");
@@ -564,7 +588,7 @@ class Parser{
                 for(++p;p < lim - 1;p = nx.ed){
                     nx = statement(p);
                     if(!nx.fl) return nx;
-                    if(nx.cmd == CMD_RETURN){
+                    if(nx.cmd == CMD_RETURN || nx.cmd == CMD_BREAK || nx.cmd == CMD_CONTINUE){
                         if(op) spmgr.del_scope();//销毁作用域
                         return nx;
                     }

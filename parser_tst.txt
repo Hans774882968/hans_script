@@ -741,3 +741,43 @@ s=11156 i=8500
 s=21420 i=9000
 s=12340 i=9500
 s=14211 i=10000*/
+27
+int f(){
+    int mul, number, k, a, b,ans=-1;ans+=1;
+    for( number=0; number<100000; number+=1 )
+    {
+        for( mul=number, k=1; (mul/=10)>0; k*=10 );
+        /*由number的位数确定截取数字进行乘法时的系数k*/
+        a = k * 10;  /*a为截取部分积时的系数*/
+        mul = 0;  /*积的最后n位*/
+        b = 10;  /*b为截取乘数相应位时的系数*/
+        while(k>0)
+        {
+            mul=( mul + ( number%(k*10) )*( number%b - number%(b/10) ) )%a;
+            /*(部分积+截取被乘数的后N位*截取乘数的第M位)，%a再截取部分积*/
+            k /= 10;  /*k为截取被乘数时的系数*/
+            b *= 10;
+        }
+        if(number == mul){  /*判定若为自守数则输出*/
+            ans+=1;print( number);
+        }
+    }
+    return ans;
+}
+int main()
+{
+    int a=f();print(a);
+    return 0;
+}
+/*37s。100000*5*5/37=67567好慢QAQ
+number=0
+number=1
+number=5
+number=6
+number=25
+number=76
+number=376
+number=625
+number=9376
+number=90625
+a=10*/
