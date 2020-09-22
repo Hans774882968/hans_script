@@ -44,12 +44,12 @@ struct Scope{
     map<string,Var> variables;int typ;
     Scope(){typ = SCP_GLOBAL;}
     Scope(int typ):typ(typ){}
-    bool new_var(string name,int for_init = 0){
+    bool new_var(string name,int val,int for_init = 0){
         if(variables.count(name)){
             printf("Redeclaration of variable: '%s'.\n",name.c_str());
             return false;
         }
-        variables[name] = Var(0,for_init);//新定义变量获得默认值0
+        variables[name] = Var(val,for_init);//新定义变量获得默认值0
         return true;
     }
     //保留在for_init部分声明的变量,其余删除
@@ -67,8 +67,8 @@ struct ScopeManager{
     void new_scope(int scp_typ){
         scopes.push_back(Scope(scp_typ));
     }
-    bool new_var(string name,int for_init = 0){
-        return scopes.back().new_var(name,for_init);
+    bool new_var(string name,int val,int for_init = 0){
+        return scopes.back().new_var(name,val,for_init);
     }
     //在父作用域寻找变量,返回：v属性:变量值,ed属性:下标
     Ret find_var(string var){
@@ -408,9 +408,16 @@ class Parser{
         //变量声明当然是在最新作用域(已封装)
         Ret declaration(int p,int for_init = 0){
             string var = code[++p].token;
-            EXPECT_VAR(code[p]);
-            if(!spmgr.new_var(var,for_init)) return Ret(false);
-            if(code[++p].token == ",") return declaration(p,for_init);//补丁：别忘了递归的时候传值...否则for循环只有1个变量被认为是不应该删
+            EXPECT_VAR(code[p]);++p;
+            int val = 0;
+            if(code[p].token == "="){
+                Ret nx = unit10(p + 1);
+                if(!nx.fl) return nx;
+                val = nx.val;
+                p = nx.ed;
+            }
+            if(!spmgr.new_var(var,val,for_init)) return Ret(false);
+            if(code[p].token == ",") return declaration(p,for_init);//补丁：别忘了递归的时候传值...否则for循环只有1个变量被认为是不应该删
             return parse_semicolon(p);
         }
         Ret print(int p){
@@ -448,7 +455,7 @@ class Parser{
                     return Ret(false);
                 }
                 Ret nx = unit11(tp);if(!nx.fl) return nx;
-                if(!nx.val) return Ret(true,stmts.val,ed_obj.ed,stmts.cmd);//满足退出条件，指向while结束的地方
+                if(!nx.val || stmts.cmd == CMD_RETURN) return Ret(true,stmts.val,ed_obj.ed,stmts.cmd);//满足退出条件，指向while结束的地方
                 stmts = statements(nx.ed + 1,ed_obj.ed,SCP_WHILE);//nx.ed + 1是"{"或其他
                 if(!stmts.fl) return Ret(false);
             }
@@ -479,7 +486,7 @@ class Parser{
                 }
                 //tp、nx.ed分别是1st、2nd ";"的下一个位置
                 Ret nx = expres_statement(tp);if(!nx.fl) return nx;
-                if(!nx.val){
+                if(!nx.val || stmts.cmd == CMD_RETURN){
                     spmgr.truly_del_scope();//真实的销毁作用域
                     return Ret(true,stmts.val,ed_obj.ed,stmts.cmd);//满足退出条件，指向for结束的地方
                 }
@@ -557,7 +564,7 @@ class Parser{
                 for(++p;p < lim - 1;p = nx.ed){
                     nx = statement(p);
                     if(!nx.fl) return nx;
-                    if(nx.cmd){
+                    if(nx.cmd == CMD_RETURN){
                         if(op) spmgr.del_scope();//销毁作用域
                         return nx;
                     }
