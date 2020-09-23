@@ -1,10 +1,11 @@
-29
+44
 int main(){
     int b=1,c=2,d=3,e=15;
     int a=(b+=c+=d-=e,2*b);
     print(a,b,c,d,e);//a=-18 b=-9 c=-10 d=-12 e=15
-    int fff=(func(),g()*2)+1;
-    print(ff,fff);//ff=15 fff=2049
+    int fff=(func(),g()*2)+1,f0;
+    for(int ffff=h()+h();ffff-fff<0;ffff+=1) f0=ffff;
+    print(ff,fff,f0);//ff=15 fff=2049 f0=2048
 }
 int ff=1+5+9;
 int func(){
@@ -13,6 +14,7 @@ int func(){
         if(a>=1000){
             print(a);
             return a;
+            int a;print(a);
         }
         a<<=1;
     }
@@ -24,9 +26,22 @@ int g(){
         if(b>=1000){
             print(b);
             return b;
+            print(b,b);//
         }
     }
     return 1;
+}
+int h(){
+    int a=1024;
+    if(a>=1024+1){
+        print(a);
+    }
+    else{
+        print(a,a);
+        return a;
+        print(a,a,a);
+    }
+    return 2;
 }
 5
 int main(){
@@ -38,7 +53,7 @@ int main(){
 int a=2,mod=2333;
 int b=mod-1;
 int qpow(){
-    int ret;ret=1;
+    int ret=1;
     for(;b;b>>=1){
         if(b&1)ret=ret*a%mod;
         a=a*a%mod;
@@ -53,4 +68,30 @@ int main(){
     a=7,b=mod-2;int n4=qpow();
     n4=n4*7%mod;
     print(n1,n2,n3,n4);//全是1
+}
+9
+int k=9*5+(24654|1787+1224&3445);//27004
+int main(){
+    int k1=29,k2;print(k1,k2,k);
+    int a=gc()&gc();print(a,k);//66016
+}
+int gc(){
+    for(int k1=1;k1<=10;k1+=3) print(k1);
+    /*print(k1);*/return k<<=1,k*2;
+}
+6
+int main(){
+int lca = 0x22;int _c_l = 0b110;
+lca += 05 * (_c_l + lca) * 0b101;
+_c_l = 555;//int _c_l=555;会报重复定义的错
+print(lca,_c_l,lca);//lca=1034 _c_l=555 lca=1034
+}
+
+7
+int main(){
+int a = 3;int b = 250;int c = -1;
+a -= (b + a) * a;
+b %=- c + a+1000;
+c += 0b11*(04+0x1);/*c=14*/
+print(a,b,c);//a=-756 b=5 c=14
 }

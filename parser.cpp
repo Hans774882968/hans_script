@@ -121,12 +121,40 @@ struct ScopeManager{
     }
 };
 
+struct Func{
+    int left_bkt;vector<string> param_names;
+    Func(){}
+    Func(int left_bkt,vector<string> param_names):left_bkt(left_bkt),param_names(param_names){}
+};
+struct FuncManager{
+    map<string,Func> funs;
+    string print(string name){
+        string s = "int " + name + "(";
+        int sz = funs[name].param_names.size();
+        if(!sz) s += ")";
+        for(int i = 0;i < sz;++i){
+            s += "int";
+            s += i < sz - 1 ? "," : ")";
+        }
+        return s;
+    }
+    int get_statement_pos(string fname){
+        return funs[fname].left_bkt;
+    }
+    int param_num(string fname){
+        return funs[fname].param_names.size();
+    }
+    vector<string> get_params(string fname){
+        return funs[fname].param_names;
+    }
+};
+
 class Parser{
     //已读取的情况下，期望是变量
     #define EXPECT_VAR(u) if((u).code != 0){printf("Expected variable but get token: %s\n",(u).token.c_str());return Ret(false);}
     private:
         vector<Node> code;
-        map<string,int> func;
+        FuncManager f_mgr;
         ScopeManager spmgr;
     public:
         Parser(){spmgr.new_scope(SCP_GLOBAL);}
@@ -150,36 +178,6 @@ class Parser{
                 printf("Bracket '%s' doesn`t match.\n",code[st].token.c_str());return Ret(false);
             }
             return Ret(true,0,ed,0);
-        }
-        //全局范围，要么是函数要么是声明语句
-        bool func_and_var(){
-            int p = 0;
-            while(p < code.size()){
-                if(code[p].code != 1){
-                    printf("Unsupported type at global scope: '%s'\n",code[p].token.c_str());return false;
-                }
-                if(code[p + 1].code != 0){
-                    printf("Illegal function name: '%s'\n",code[p + 1].token.c_str());return false;
-                }
-                Ret nx;
-                if(code[p + 2].token != "("){
-                    nx = declaration(p);
-                    if(!nx.fl) return false;
-                }
-                else{
-                    func[code[p + 1].token] = p;
-                    nx = match_bracket(p + 2);
-                    if(!nx.fl) return false;
-                    int p1 = nx.ed;
-                    if(code[p1].token != "{"){
-                        puts("Function body should start with '{'!");return false;
-                    }
-                    nx = match_bracket(p1);
-                    if(!nx.fl) return false;
-                }
-                p = nx.ed;
-            }
-            return true;
         }
         
         //p是分号的位置
@@ -222,15 +220,96 @@ class Parser{
             }
             return Ret(true,0,++p,0);
         }
+        //暂不处理函数重名的问题
+        bool parse_func_defi(int p,int lim,string fun_name){
+            vector<string> names;
+            p += 3;
+            if(code[p].token == ")"){
+                f_mgr.funs[fun_name] = Func(lim,names);
+                return true;
+            }
+            while(p < lim){
+                if(code[p].code != 1){
+                    printf("Unsupported param type '%s' of function '%s'\n",code[p].token.c_str(),fun_name);return false;
+                }
+                ++p;
+                if(code[p].code != 0){
+                    printf("Illegal param name '%s' of function '%s'\n",code[p].token.c_str(),fun_name);return false;
+                }
+                names.push_back(code[p].token);
+                ++p;
+                if(code[p].token != "," && code[p].token != ")"){
+                    printf("Unexpected token '%s' in definition of function '%s'\n",code[p].token.c_str(),fun_name);return false;
+                }
+                ++p;
+            }
+            f_mgr.funs[fun_name] = Func(lim,names);
+            return true;
+        }
+        //全局范围，要么是函数要么是声明语句
+        bool func_and_var(){
+            int p = 0;
+            while(p < code.size()){
+                if(code[p].code != 1){
+                    printf("Unsupported return type at global scope: '%s'\n",code[p].token.c_str());return false;
+                }
+                if(code[p + 1].code != 0){
+                    printf("Illegal function name or variable name: '%s'\n",code[p + 1].token.c_str());return false;
+                }
+                if(code[p + 2].token != "("){
+                    Ret nx = declaration(p);
+                    if(!nx.fl) return false;
+                    p = nx.ed;
+                }
+                //parse函数定义
+                else{
+                    string fun_name = code[p + 1].token;
+                    Ret nx = match_bracket(p + 2);
+                    if(!nx.fl) return false;
+                    int p1 = nx.ed;
+                    if(code[p1].token != "{"){
+                        puts("Function body should start with '{'!");return false;
+                    }
+                    Ret ed_obj = match_bracket(p1);
+                    if(!ed_obj.fl) return false;
+                    bool fl = parse_func_defi(p,p1,fun_name);
+                    if(!fl) return false;
+                    p = ed_obj.ed;
+                }
+            }
+            return true;
+        }
+        //处理函数调用
+        Ret parse_func_call(int p,string var){
+            vector<int> vals;++p;
+            if(code[p].token == ")") return run_function(var,vals);
+            while(true){
+                Ret nx = unit10(p);
+                if(!nx.fl) return Ret(false);
+                p = nx.ed;
+                if(code[p].token != "," && code[p].token != ")"){
+                    printf("Invalid function call to function '%s'.\n",f_mgr.print(var).c_str());
+                    return Ret(false);
+                }
+                vals.push_back(nx.val);
+                if(code[p].token == ")") break;
+                ++p;
+            }
+            return run_function(var,vals);
+        }
         //变量和函数重名时,优先认为它是函数。
         Ret unit0(int p){
             Node u = code[p];++p;
             if(!u.code){
                 string var = u.token;
-                if(func.count(var)){
+                if(f_mgr.funs.count(var)){
+                    if(code[p].token != "("){
+                        puts("Function call should use token '('.");
+                        return Ret(false);
+                    }
                     Ret ed_obj = match_bracket(p);
                     if(!ed_obj.fl) return ed_obj;
-                    Ret fobj = run_function(func[var]);
+                    Ret fobj = parse_func_call(p,var);
                     return Ret(fobj.fl,fobj.val,ed_obj.ed,0);
                 }
                 Ret found = spmgr.find_var(var);
@@ -251,6 +330,7 @@ class Parser{
             }
             else if(u.token == "("){
                 Ret nx = unit11(p);
+                if(!nx.fl) return Ret(false);
                 if(code[nx.ed].token != ")"){
                     puts("Syntax error! Wanna ')' token!");return Ret(false);
                 }
@@ -416,6 +496,9 @@ class Parser{
         //变量声明当然是在最新作用域(已封装)
         Ret declaration(int p,int for_init = 0){
             string var = code[++p].token;
+            /* 暂时留着,因为莫名其妙出现“Expected variable but get token: ”
+            cout <<"dec "<<code[p].token<<" "<<code[p].code<<endl;//
+            */
             EXPECT_VAR(code[p]);++p;
             int val = 0;
             if(code[p].token == "="){
@@ -459,15 +542,17 @@ class Parser{
             int tp = p + 2;
             for(Ret stmts(true);true;){
                 if(code[tp].token == ")"){
-                    puts("Because we don`t have 'break', we don`t support null condition in whileloop as well.");
+                    puts("Even if we have 'break', we don`t support null condition in whileloop as well.");
                     return Ret(false);
                 }
-                Ret nx = unit11(tp);if(!nx.fl) return nx;
-                if(!nx.val || stmts.cmd == CMD_RETURN || stmts.cmd == CMD_BREAK){
-                    //满足退出条件，指向while结束的地方
+                //补丁：退出循环之前不应该重新计算判定条件！
+                if(stmts.cmd == CMD_RETURN || stmts.cmd == CMD_BREAK){
                     if(stmts.cmd == CMD_BREAK) return Ret(true,0,ed_obj.ed,0);
                     return Ret(true,stmts.val,ed_obj.ed,stmts.cmd);
                 }
+                Ret nx = unit11(tp);if(!nx.fl) return nx;
+                //满足退出条件，指向while结束的地方
+                if(!nx.val) return Ret(true,0,ed_obj.ed,0);
                 stmts = statements(nx.ed + 1,ed_obj.ed,SCP_WHILE);//nx.ed + 1是"{"或其他
                 if(!stmts.fl) return Ret(false);
             }
@@ -494,15 +579,20 @@ class Parser{
             }
             for(Ret stmts(true);true;){
                 if(code[tp].token == ";"){
-                    puts("Because we don`t have 'break', we don`t support null condition in forloop as well.");return Ret(false);
+                    puts("Even if we have 'break', we don`t support null condition in forloop as well.");return Ret(false);
+                }
+                //补丁：退出循环之前不应该重新计算判定条件！
+                if(stmts.cmd == CMD_RETURN || stmts.cmd == CMD_BREAK){
+                    spmgr.truly_del_scope();//真实的销毁作用域
+                    if(stmts.cmd == CMD_BREAK) return Ret(true,0,ed_obj.ed,0);
+                    return Ret(true,stmts.val,ed_obj.ed,stmts.cmd);
                 }
                 //tp、nx.ed分别是1st、2nd ";"的下一个位置
                 Ret nx = expres_statement(tp);if(!nx.fl) return nx;
-                if(!nx.val || stmts.cmd == CMD_RETURN || stmts.cmd == CMD_BREAK){
-                    spmgr.truly_del_scope();//真实的销毁作用域
-                    //满足退出条件，指向for结束的地方
-                    if(stmts.cmd == CMD_BREAK) return Ret(true,0,ed_obj.ed,0);
-                    return Ret(true,stmts.val,ed_obj.ed,stmts.cmd);
+                //满足退出条件，指向for结束的地方
+                if(!nx.val){
+                    spmgr.truly_del_scope();
+                    return Ret(true,0,ed_obj.ed,0);
                 }
                 stmts = statements(rig_brkt.ed,ed_obj.ed,SCP_FOR,0);//rig_brkt.ed是"{"或其他
                 if(!stmts.fl) return Ret(false);
@@ -598,16 +688,30 @@ class Parser{
             return nx;
         }
         //已经确保返回类型都是int。暂时假设只有main一个函数
-        Ret run_function(int p){
-            return statements(p + 4,match_bracket(p + 4).ed,SCP_FUNC);
+        Ret run_function(string name,vector<int> params){
+            int sz1 = params.size(),sz2 = f_mgr.param_num(name);
+            if(sz1 != sz2){
+                printf("Too %s arguments to function '%s'\n",sz1 < sz2 ? "few" : "many",f_mgr.print(name).c_str());
+                return Ret(false);
+            }
+            spmgr.new_scope(SCP_FUNC);
+            vector<string> vars = f_mgr.get_params(name);
+            for(int i = 0;i < sz1;++i){
+                spmgr.new_var(vars[i],params[i]);
+            }
+            int pos = f_mgr.get_statement_pos(name);
+            Ret ret = statements(pos,match_bracket(pos).ed,SCP_FUNC,0);
+            if(!ret.fl) return ret;
+            spmgr.del_scope();
+            return ret;
         }
         bool analyze(){
             if(!func_and_var()) return false;
-            if(!func.count("main")){
+            if(!f_mgr.funs.count("main")){
                 puts("Didn`t find function 'main'!");
                 return false;
             }
-            return run_function(func["main"]).fl;
+            return run_function("main",vector<int>()).fl;
         }
     #undef EXPECT_VAR
 };

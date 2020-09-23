@@ -1,0 +1,129 @@
+17
+int main(){
+    int yy=fib(ff-9),x=fac(-1+9+1);
+    print(x,yy);
+    for(int i=0;i<20;i+=1){
+        int yy=fib(i);print(i,yy);
+    }
+    print(yy);
+}
+int ff=1+5+9;
+int fac(int x){
+    if(x<=1) return 1;
+    return x*fac(x-1);
+}
+int fib(int x){
+    if(x<=1) return 1;
+    return fib(x-1)+fib(x-2);
+}
+11
+int x=10,y=10;
+int dfs(int x,int y){
+    if (x==1||y==1) return 1;
+    else if (x==y) return dfs(x,y-1)+1;
+    else if (x<y) return dfs(x,x);
+    return dfs(x,y-1)+dfs(x-y,y);
+}
+int main(){
+    int ans1=dfs(4,4),ans2=dfs(5,4);
+    print(x,y,ans1,ans2);//5 6
+}
+15
+int mod=2333;
+int qpow(int a,int b){
+    int ret=1;
+    for(;b;b>>=1){
+        if(b&1)ret=ret*a%mod;
+        a=a*a%mod;
+    }
+    return ret;
+}
+int main(){
+    int n1=qpow(2,mod-1),n2=qpow(3,mod-1),n3=qpow(5,mod-1),n4=qpow(7,mod-2)*7%mod;
+    print(n1,n2,n3,n4);//全是1
+    int ff;;
+    int n5=qpow(ff);print(n5);//输出参数过少&过多的错误信息
+}
+18
+int main(){
+    int k1,k2=gc(10)+gc(0);
+    print(k1,k2);//0 22
+}
+int g(int fu){
+    int k1;
+    if(fu)return 0;
+    return fu+10;
+}
+int gc(int fu){
+    int y,x=1,z;print(y,x,z);
+    for(int k1=1;k1<=g(fu);k1+=3)
+    {
+        print(k1);
+        x+=k1;
+    }
+    /*print(k1);*/return x-=1;
+}
+/*y=0 x=1 z=0
+y=0 x=1 z=0
+k1=1
+k1=4
+k1=7
+k1=10
+k1=0 k2=22*/
+7
+int x;
+int _a(int v,int vv,int vvvv){
+    return x+=1,v,vv,vvvv+=v+vv;
+}
+int main(){
+    int __a=_a(x+=2,x+=2,x+=2);print(__a,x);//12 7
+}
+9
+int gcd(int a,int b){
+    if(!b)return a;
+    return gcd(b,a%b);
+}
+int main(){
+    int ans,x=gcd(100,125),y=gcd(125,100);
+    for(int i=1;i<=100;i+=1) for(int j=1;j<=i;j+=1){ans+=gcd(i,j);}
+    print(ans,x,y);//18065 25 25
+}
+//下面2个样例无意间测出了之前break命令的bug
+//题意：求sum(i%k)，i是1~n。n和k的关系任意。
+17
+int min(int a,int b){
+    if(a<b)return a;
+    return b;
+}
+int main(){
+    int n=2512,k=1410,ans=n*k;
+    for(int L=1,R;(R=k/(k/L),L)<=min(n,k);L=R+1){
+        int b = min(n,R);
+        ans-=(L+b)*(b-L+1)/2*(k/L);
+        if(!(k/(R+1))){
+            print(k);
+            break;
+            print(k,k);
+        }
+    }
+    print(ans);//1905445
+}
+18
+int min(int a,int b){
+    if(a<b)return a;
+    return b;
+}
+int main(){
+    int n=1215,k=1811,ans;ans=n*k;int L=1,R;
+    while((R=k/(k/L),L)<=min(n,k)){
+        int b = min(n,R);
+        ans-=(L+b)*(b-L+1)/2*(k/L);
+        if(!(k/(R+1))){
+            print(k);
+            break;
+            print(k,k);
+        }
+        L=R+1;
+    }
+    print(ans);//405007
+}

@@ -11,6 +11,8 @@ const int INTCODE = KWDNUM + SYMNUM + QUONUM + 1;
 
 struct Node{
     string token;int code;
+    Node(){}
+    Node(string token,int code):token(token),code(code){}
 };
 
 class Lexer{
@@ -157,12 +159,12 @@ class Lexer{
                     }
                     case 1:{
                         string iden = get_identifier();
-                        res.push_back({iden,get_token_id(iden)});
+                        res.push_back(Node(iden,get_token_id(iden)));
                         break;
                     }
                     case 2:{
                         string d = get_int();
-                        res.push_back({d,INTCODE});
+                        res.push_back(Node(d,INTCODE));
                         break;
                     }
                     case 3:{
@@ -177,14 +179,14 @@ class Lexer{
                                 symb = symb.substr(0,sl);
                                 //我们对于未知符号，会自动忽略，比如目前还不支持的#
                             }
-                            res.push_back({symb,get_token_id(symb)});
+                            res.push_back(Node(symb,get_token_id(symb)));
                         }
                         break;
                     }
                     //为了方便，不去掉引号
                     case 4:{
                         string const_str = get_const_str();
-                        res.push_back({const_str,get_token_id(const_str)});
+                        res.push_back(Node(const_str,get_token_id(const_str)));
                         break;
                     }
                     default:{
