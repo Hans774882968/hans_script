@@ -1,0 +1,325 @@
+21
+int n, a[100];
+
+int main()
+{
+    n=11;a[1]=123,a[2]=21323,a[3]=3224,a[4]=2143,a[5]=23132,a[6]=2443,a[7]=143,a[8]=3243,a[9]=445,a[11]=0b1011101010110,a[10]=7348;
+    int i, j, this_VARIABLE_is_NOT_used;
+    for (int i = 1; i <= n; i += 1)
+        for (int j = i + 1; j <= n; j += 1)
+            if (a[i] > a[j])
+            {
+                int t=a[i];
+                a[i] = a[j];
+                a[j] = t;
+            }
+    for (int i = 1; i <= n; i = i + 1)
+    {
+        int x=a[i];
+        print(x);
+    }
+    return 0;
+}
+/*x=123
+x=143
+x=445
+x=2143
+x=2443
+x=3224
+x=3243
+x=5974
+x=7348
+x=21323
+x=23132*/
+//lg1006
+22
+int SZ=11;
+int r=8,c=6,a[SZ][SZ];
+int dp[SZ][SZ][SZ][SZ];
+int main(){
+    a[1][1]=0,a[1][2]=94,a[1][3]=11,a[1][4]=25,a[1][5]=24,a[1][6]=51,a[2][1]=15,a[2][2]=13,a[2][3]=39,a[2][4]=67,a[2][5]=97,a[2][6]=19,a[3][1]=76,a[3][2]=12,a[3][3]=33,a[3][4]=99,a[3][5]=18,a[3][6]=92,a[4][1]=35,a[4][2]=74,a[4][3]=0,a[4][4]=95,a[4][5]=71,a[4][6]=39,a[5][1]=33,a[5][2]=39,a[5][3]=32,a[5][4]=37,a[5][5]=45,a[5][6]=57,a[6][1]=71,a[6][2]=95,a[6][3]=5,a[6][4]=71,a[6][5]=24,a[6][6]=86,a[7][1]=8,a[7][2]=51,a[7][3]=54,a[7][4]=74,a[7][5]=24,a[7][6]=75,a[8][1]=70,a[8][2]=33,a[8][3]=63,a[8][4]=29,a[8][5]=99,a[8][6]=0;
+    for(int i1 = 1;i1 <= r;i1+=1){
+        for(int j1=1;j1<=c;j1+=1){
+            for(int i2=1;i2<=r;i2+=1){
+                int j2=i1+j1-i2;
+                if(j2<1||j2>c) continue;
+                dp[i1][j1][i2][j2]=max(
+                    max(dp[i1-1][j1][i2-1][j2],dp[i1][j1-1][i2-1][j2]),
+                    max(dp[i1-1][j1][i2][j2-1],dp[i1][j1-1][i2][j2-1])
+                );
+                dp[i1][j1][i2][j2]+=a[i1][j1]+(i2!=i1)*a[i2][j2];
+            }
+        }
+    }
+    int ans=dp[r][c][r][c];
+    print(ans);//ans=1382
+}
+int max(int aa,int b){if(aa>b)return aa;else return b;}
+
+29
+int SZ = 110;//检查出了“数组下标被重复计算2次的bug”
+int psz,vis[SZ],mnp[SZ],primes[SZ];
+int init_primes(int lim){
+    vis[1]=100;
+    for(int i=2;i<=lim;i+=1){
+        if(!vis[i]){
+            primes[psz+=1]=i;mnp[i]=i;
+            print(psz);
+        }
+        print(i,lim,psz);//
+        for(int j=1;j<=psz;j+=1){
+            int p=primes[j];
+            if(i>lim/p) break;
+            vis[i*p]=1;
+            mnp[i*p]=p;
+            if(i%p==0) break;
+        }
+    }
+}
+int main(){
+    int _t=init_primes(SZ-10);print(_t,psz);
+    for(int i=1;i<=psz;i+=1){
+        int x=primes[i];print(x);
+    }
+    for(int i=1;i<=SZ-10;i+=1){
+        int x=mnp[i];print(x);
+    }
+    print(lim);//报错
+}
+26
+int a[11];
+int insort(int n)
+{
+    for(int i=2;i<=n;i+=1)
+    {
+        a[0]=a[i];
+        int j=i-1;
+        while(a[0]<a[j])
+        {
+            a[j+1]=a[j];
+            j-=1;
+        }
+        a[j+1]=a[0];
+    }
+    return 0;
+}
+int main()
+{
+    a[1]=25,a[2]=12,a[3]=36,a[4]=45,a[5]=2,a[6]=9,a[7]=39,a[8]=22,a[9]=98,a[10]=37;
+    insort(10);
+    for(int i=1,x;(x=a[i],i)<11;i+=1){
+        print(x); //将排序后的数组输出
+        if(i>=10)break;//顺便确保break不会多运行1次判定
+    }
+    return 0;
+}
+/*x=2
+x=9
+x=12
+x=22
+x=25
+x=36
+x=37
+x=39
+x=45
+x=98*/
+16
+int main()
+{
+    int a[3][4],i,j;
+    a[0][0]=1,a[0][1]=2,a[0][2]=3,a[0][3]=4,a[1][0]=5,a[1][1]=6,a[1][2]=7,a[1][3]=99,a[2][0]=9,a[2][1]=10,a[2][2]=11,a[2][3]=12;
+    int max=a[0][0],max_i=0,max_j;
+    for(i=0;i<3;i+=1)
+        for(j=0;j<4;j+=1)
+            if(a[i][j]>max)
+            {
+                max=a[i][j];
+                max_i=i;
+                max_j=j;
+            }
+    print(max_i,max_j,max);
+    return 0;
+}
+28
+int josef(int n,int m)
+{
+    int i,j,k=0;
+    for(i=0;i<n;i+=1)
+    {
+        j=1;
+        while(j<m)
+        {
+            while(a[k]==0) k=(k+1)%n;
+            j+=1;
+            k=(k+1)%n;
+        }
+        while(a[k]==0) k=(k+1)%n;
+        int ans=a[k];print(ans);
+        a[k]=0;
+    }
+    return 0;
+}
+int a[100];
+int main()
+{
+    int i,j,m,n;
+    n=100,m=9;
+    for(int i=0;i<n;i+=1)
+        a[i]=i+1;
+    josef(n,m);//结果见http://c.biancheng.net/view/608.html。结果正确
+    return 0;
+}
+15
+int N=13;
+int main()//组合数
+{
+    int i, j, k, n=12, a[N][N]; 
+    for(i=1;i<=n;i+=1)
+        a[i][1] = a[i][i] = 1;  
+    for(i=3;i<=n;i+=1)
+        for(j=2;j<=i-1;j+=1)
+            a[i][j]=a[i-1][j-1]+a[i-1][j];
+    for(i=1;i<=n;i+=1)
+        for(j=1;j<=i;j+=1){
+            int ans=a[i][j];
+            print(i,j,ans);}
+    return 0;
+}
+23
+int main()
+{
+    int m[16], n, i, t, count=0;
+    int a, k;
+    for(int n=1; n<256; n+=1 )  /*穷举n的取值范围*/
+    {
+        k=0,t=1,a=n*n;  /*计算n的平方*/
+        //print(a);//
+        for(i=0; a!=0; m[i] = a % 10,a /= 10,i+=1 ){}
+        for(; i>0; i-=1)
+        {
+            k += m[i-1] * t;
+            t *= 10;
+        }
+        int ans=n*n;
+        if(k == ans){
+            count+=1;
+            print(count, n, ans);
+        }
+    }print(n);
+    if(n==0){}//"{}"会返回“不合语法”的bug已修复
+    return 0;
+}
+/*count=1 n=1 ans=1
+count=2 n=2 ans=4
+count=3 n=3 ans=9
+count=4 n=11 ans=121
+count=5 n=22 ans=484
+count=6 n=26 ans=676
+count=7 n=101 ans=10201
+count=8 n=111 ans=12321
+count=9 n=121 ans=14641
+count=10 n=202 ans=40804
+count=11 n=212 ans=44944*/
+14
+int main()
+{
+    int i,pos[10],lang=0;
+    for(i=0;i<100;i+=1)
+    {
+        pos[lang]=1;
+        lang+=1+i;
+        lang%=10;
+    }
+    for(i=0;i<10;i+=1)
+        if(!pos[i]){
+            int o=i+1;print(o);}//3 5 8 10
+    return 0;
+}
+11
+int main(){
+    int SZ=40;int h=12,dp[SZ][SZ],n=15;
+    for(int i;i<=n;i+=1) dp[0][i] = 1;
+    for(int i=1;i<=n;i+=1)
+        for(int j=1;j<=n;j+=1)
+            for(int k=1;k<=i;k+=1){
+                dp[i][j] += dp[k - 1][j - 1] * dp[i - k][j - 1];
+            }
+    int ans = dp[n][n] - dp[n][h - 1];
+    print(ans);//1203200
+}
+37
+int SZ=510,mod = 100003;//lg1144
+int n,m,dp[SZ],dis[SZ];
+int vis[SZ],G[SZ][SZ];
+int q[SZ*5],hd,tl;
+int main() {
+    n=5,m= 7;
+    for(int i = 1;i <= m;i+=1){
+        int p1,p2;
+        if(i==1)p1=1,p2=2;
+        else if(i==2)p1=1,p2=3;
+        else if(i==3)p1=2,p2=4;
+        else if(i==4)p1=3,p2=4;
+        else if(i==5)p1=2,p2=3;
+        else if(i==6)p1=4,p2=5;
+        else if(i==7)p1=4,p2=5;
+        G[p1][G[p1][0]+=1]=p2;
+        G[p2][G[p2][0]+=1]=p1;
+    }
+    for(int i = 1;i <= n;i+=1) dis[i] = 0x3f3f3f3f;
+    dp[1] = 1;dis[1] = 0;vis[1] = 1;
+    q[tl]=1,tl+=1;
+    while(hd<tl){
+        int u = q[hd];hd+=1;
+        for(int i=1;i<=G[u][0];i+=1){
+            int v=G[u][i];
+            if(v==u||dis[v]<dis[u]+1) continue;
+            dis[v] = dis[u] + 1;
+            if(!vis[v]) q[tl]=(v),tl+=1,vis[v] = 1;
+            dp[v] = (dp[v]+dp[u])%mod;
+        }
+    }
+    for(int i=1;i<=n;i+=1){
+        int x=dp[i];
+        print(x);
+    }
+    return 0;
+}
+/*x=1
+x=1
+x=1
+x=2
+x=4*/
+29
+int solve(){//51Nod2494
+    for(int len = n - n % 2;len >= 2;len-=1){
+        for(int L = 1,R;(R = L + len - 1) <= n;L+=1){
+            if(sum[R][0] - sum[L - 1][0] == sum[R][1] - sum[L - 1][1]) return len;
+        }
+    }
+    return 0;
+}
+int SZ = 50010;
+
+int n,a[SZ],sum[SZ][2];
+int main() {
+    sum[0][0] = sum[0][1] = 0;int _;
+    while(_+=1){
+        if(_==1)n=15,a[1]=0,a[2]=0,a[3]=1,a[4]=1,a[5]=1,a[6]=0,a[7]=0,a[8]=1,a[9]=1,a[10]=0,a[11]=0,a[12]=1,a[13]=0,a[14]=0,a[15]=1;
+        else if(_==2)n=16,a[1]=0,a[2]=0,a[3]=1,a[4]=1,a[5]=1,a[6]=0,a[7]=1,a[8]=0,a[9]=1,a[10]=1,a[11]=0,a[12]=0,a[13]=1,a[14]=0,a[15]=0,a[16]=1;
+        else break;
+        if(!n)break;
+        
+        for(int i = 1;i <= n;i+=1){
+            sum[i][0] = sum[i - 1][0] + (a[i] == 0);
+            sum[i][1] = sum[i - 1][1] + (a[i] == 1);
+        }
+        int ans=solve();
+        print(ans);
+    }
+    print(_);//应为3而非4(break正确运行)
+    return 0;
+}
+/*ans=14
+ans=16
+_=3*/

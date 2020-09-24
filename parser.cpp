@@ -31,8 +31,54 @@ struct Ret{
     Ret(bool fl,int val,int ed,int cmd):fl(fl),val(val),ed(ed),cmd(cmd){}
 };
 
-//仅变量自己知道是否是for循环初始化区的变量。
+//变量自己应知是否是for循环初始化区的变量。
 const int FOR_INIT = 1;
+struct Array{
+    vector<int> vals,sizs;int for_init;
+    Array(){}
+    Array(vector<int> sizs,int for_init):sizs(sizs),for_init(for_init){
+        int totsz = 1;
+        for(int siz: sizs) totsz *= siz;
+        vals = vector<int>(totsz);
+    }
+    int get_idx(vector<int> idxs){
+        if(idxs.size() != sizs.size()){
+            puts("Array dimension number doesn`t match.");
+            return -1;
+        }
+        int idx = 0;
+        for(int i = 0;i < sizs.size();++i){
+            if(sizs[i] <= idxs[i]){
+                printf("Array`s %dth dimension index out of range.\n",i + 1);
+                return -1;
+            }
+            idx = idx * sizs[i] + idxs[i];
+        }
+        return idx;
+    }
+    Ret finder(vector<int> idxs){
+        int idx = get_idx(idxs);
+        if(idx == -1) return Ret(false);
+        return Ret(true,vals[idx],0,0);
+    }
+    Ret setter(vector<int> idxs,int v,string op){
+        int idx = get_idx(idxs);
+        if(idx == -1) return Ret(false);
+        if(op == "=") vals[idx] = v;
+        else if(op == "+=") vals[idx] += v;
+        else if(op == "-=") vals[idx] -= v;
+        else if(op == "*=") vals[idx] *= v;
+        else if(op == "/=") vals[idx] /= v;//暂不处理ZeroDivisionError
+        else if(op == "%=") vals[idx] %= v;//暂不处理ZeroDivisionError
+        else if(op == "<<=") vals[idx] <<= v;
+        else if(op == ">>=") vals[idx] >>= v;
+        else if(op == "&=") vals[idx] &= v;
+        else if(op == "^=") vals[idx] ^= v;
+        else if(op == "|=") vals[idx] |= v;
+        return Ret(true,vals[idx],0,0);
+    }
+};
+
 struct Var{
     int v,for_init;
     Var(){}
@@ -42,6 +88,7 @@ struct Var{
 const int SCP_GLOBAL = -1,SCP_FUNC = 1,SCP_WHILE = 2,SCP_FOR = 3,SCP_IF = 4,SCP_DOWHILE = 5;
 struct Scope{
     map<string,Var> variables;int typ;
+    map<string,Array> arrays;
     Scope(){typ = SCP_GLOBAL;}
     Scope(int typ):typ(typ){}
     bool new_var(string name,int val,int for_init = 0){
@@ -52,23 +99,45 @@ struct Scope{
         variables[name] = Var(val,for_init);//新定义变量获得默认值0
         return true;
     }
-    //保留在for_init部分声明的变量,其余删除
+    bool new_array(string name,vector<int> sizs,int for_init = 0){
+        if(arrays.count(name)){
+            printf("Redeclaration of array: '%s'.\n",name.c_str());
+            return false;
+        }
+        for(int i = 0;i < sizs.size();++i){
+            if(sizs[i] <= 1){
+                printf("Array '%s'`s %dth size should be at least 2, got %d.\n",name.c_str(),i + 1,sizs[i]);
+                return false;
+            }
+        }
+        arrays[name] = Array(sizs,for_init);//新定义数组获得默认值0
+        return true;
+    }
+    //保留在for_init部分声明的变量和数组,其余删除
     void del_vars_forloop(){
         if(typ != SCP_FOR) return;
         for(auto it = variables.begin();it != variables.end();){
             if(it->second.for_init == FOR_INIT) it++;
             else variables.erase(it++);
         }
+        for(auto it = arrays.begin();it != arrays.end();){
+            if(it->second.for_init == FOR_INIT) it++;
+            else arrays.erase(it++);
+        }
     }
 };
 //作用域自动管理器：for循环等不必自行管理作用域
 struct ScopeManager{
     vector<Scope> scopes;
+    vector<int> idxs_cache;//缓存unit0()所产生的idxs，以备unit10()使用
     void new_scope(int scp_typ){
         scopes.push_back(Scope(scp_typ));
     }
     bool new_var(string name,int val,int for_init = 0){
         return scopes.back().new_var(name,val,for_init);
+    }
+    bool new_array(string name,vector<int> sizs,int for_init = 0){
+        return scopes.back().new_array(name,sizs,for_init);
     }
     //在父作用域寻找变量,返回：v属性:变量值,ed属性:下标
     Ret find_var(string var){
@@ -79,12 +148,6 @@ struct ScopeManager{
         if(scopes[0].variables.count(var)) return Ret(true,scopes[0].variables[var].v,0,0);
         printf("Variable '%s' was not declared in this scope.\n",var.c_str());
         return Ret(false);
-    }
-    Ret mdy_var(string var,int v){
-        Ret found = find_var(var);
-        if(!found.fl) return found;
-        scopes[found.ed].variables[var].v = v;
-        return Ret(true,v,found.ed,0);
     }
     Ret mdy_var(string var,int v,string op){//用于赋值语句
         Ret found = find_var(var);
@@ -102,6 +165,35 @@ struct ScopeManager{
         else if(op == "|=") scopes[found.ed].variables[var].v |= v;
         return Ret(true,scopes[found.ed].variables[var].v,found.ed,0);
     }
+    //重载find_array()，支持“仅判定数组存在性”和“同时要得到值”
+    int find_array(string var){
+        dwn(i,scopes.size() - 1,1){
+            if(scopes[i].arrays.count(var)) return i;
+            if(scopes[i].typ == SCP_FUNC) break;
+        }
+        if(scopes[0].arrays.count(var)) return 0;
+        return -1;
+    }
+    Ret find_array(string var,vector<int> idxs){
+        int idx = find_array(var);
+        if(idx == -1){
+            printf("Array '%s' was not declared in this scope.\n",var.c_str());
+            return Ret(false);
+        }
+        Ret suc = scopes[idx].arrays[var].finder(idxs);
+        if(!suc.fl) return suc;
+        return Ret(true,suc.val,idx,0);
+    }
+    Ret mdy_array(string var,vector<int> idxs,int v,string op){//用于赋值语句
+        int idx = find_array(var);
+        if(idx == -1){
+            printf("Array '%s' was not declared in this scope.\n",var.c_str());
+            return Ret(false);
+        }
+        Ret suc = scopes[idx].arrays[var].setter(idxs,v,op);
+        if(!suc.fl) return suc;
+        return Ret(true,suc.val,idx,0);
+    }
     void del_scope(){
         if(scopes.back().typ == SCP_FOR)
             scopes.back().del_vars_forloop();
@@ -111,6 +203,7 @@ struct ScopeManager{
     void truly_del_scope(){
         scopes.pop_back();
     }
+    //用于parse break;和continue;
     bool has_loop_scope(string loop_name){
         dwn(i,scopes.size() - 1,1){
             if(scopes[i].typ == SCP_WHILE || scopes[i].typ == SCP_FOR || scopes[i].typ == SCP_DOWHILE) return true;
@@ -152,6 +245,8 @@ struct FuncManager{
 class Parser{
     //已读取的情况下，期望是变量
     #define EXPECT_VAR(u) if((u).code != 0){printf("Expected variable but get token: %s\n",(u).token.c_str());return Ret(false);}
+    //是否“赋值符”
+    #define IS_ASSIGN(op) ((op) == "=" || (op) == "+=" || (op) == "-=" || (op) == "*=" || (op) == "/=" || (op) == "%=" || (op) == "<<=" || (op) == ">>=" || (op) == "&=" || (op) == "^=" || (op) == "|=")
     private:
         vector<Node> code;
         FuncManager f_mgr;
@@ -179,8 +274,24 @@ class Parser{
             }
             return Ret(true,0,ed,0);
         }
+        //p：1st"["的位置。结束位置是the last "]"的下一个
+        Ret parse_square_brackets(int p,vector<int> &sizs){
+            if(code[p].token != "["){
+                printf("Expected '[' but get token: '%s'\n",code[p].token.c_str());return Ret(false);
+            }
+            while(true){
+                Ret bmatch = match_bracket(p);
+                if(!bmatch.fl) return bmatch;
+                Ret nx = unit11(p + 1);
+                if(!nx.fl) return nx;
+                sizs.push_back(nx.val);
+                p = bmatch.ed;
+                if(code[p].token != "[") break;
+            }
+            return Ret(true,0,p,0);
+        }
         
-        //p是分号的位置
+        //p：分号的位置
         Ret parse_semicolon(int p,int ret_val = 0){
             if(code[p].token != ";"){
                 printf("Expected ';' but get token: '%s'\n",code[p].token.c_str());
@@ -188,6 +299,7 @@ class Parser{
             }
             ++p;return Ret(true,ret_val,p,0);
         }
+        
         //找到每种控制结构语句的结束位置。它顺便做了括号匹配的检查，调用者无需再检查。
         Ret next_statement(int p){
             if(code[p].token == "while" || code[p].token == "for"){
@@ -297,7 +409,7 @@ class Parser{
             }
             return run_function(var,vals);
         }
-        //变量和函数重名时,优先认为它是函数。
+        //重名时,优先认为它是函数,随后认为它是数组,最后认为它是变量。
         Ret unit0(int p){
             Node u = code[p];++p;
             if(!u.code){
@@ -312,6 +424,19 @@ class Parser{
                     Ret fobj = parse_func_call(p,var);
                     return Ret(fobj.fl,fobj.val,ed_obj.ed,0);
                 }
+                else if(code[p].token == "["){
+                    if(spmgr.find_array(var) == -1){
+                        printf("Array '%s' was not declared in this scope.\n",var.c_str());return Ret(false);
+                    }
+                    vector<int> idxs;
+                    Ret suc = parse_square_brackets(p,idxs);
+                    if(!suc.fl) return suc;
+                    Ret val = spmgr.find_array(var,idxs);
+                    if(!val.fl) return val;
+                    spmgr.idxs_cache = idxs;//缓存
+                    return Ret(true,val.val,suc.ed,0);
+                }
+                //变量
                 Ret found = spmgr.find_var(var);
                 if(!found.fl) return found;
                 return Ret(true,found.val,p,0);
@@ -463,24 +588,43 @@ class Parser{
             }
             return nx;
         }
-        //赋值
         Ret unit10(int p){
             Ret nx = unit9(p);if(!nx.fl) return nx;
             string op = code[nx.ed].token;
-            if(op == "=" || op == "+=" || op == "-=" || op == "*=" || op == "/=" || op == "%=" || op == "<<=" || op == ">>=" || op == "&=" || op == "^=" || op == "|="){
-                if(nx.ed - p != 1 || code[p].code != 0){
-                    printf("lvalue required as left operand of assignment: %s\n",op.c_str());return Ret(false);
+            if(!IS_ASSIGN(op)) return nx;
+            if(code[p].code != 0){
+                printf("lvalue '%s' should be a variable\n",code[p].token.c_str());return Ret(false);
+            }
+            string var = code[p].token;
+            //左侧是数组取下标
+            //补丁：不要重复遍历相同区域，直接取缓存idxs_cache即可
+            if(code[p + 1].token == "["){
+                vector<int> idxs = spmgr.idxs_cache;//保存刚刚得到的缓存内容
+                for(++p;code[p].token == "[";){
+                    Ret ed_obj = match_bracket(p);
+                    if(!ed_obj.fl) return ed_obj;
+                    p = ed_obj.ed;
                 }
-                string var = code[p].token;
-                Ret found = spmgr.find_var(var);
-                if(!found.fl) return found;
+                if(nx.ed == p){
+                    Ret nx1 = unit10(nx.ed + 1);
+                    if(!nx1.fl) return nx1;
+                    Ret mdy = spmgr.mdy_array(var,idxs,nx1.val,op);
+                    if(!mdy.fl) return mdy;
+                    return Ret(true,mdy.val,nx1.ed,0);
+                }
+                //parse数组取下标后未到达指定位置
+                printf("lvalue required as left operand of assignment: %s\n",op.c_str());return Ret(false);
+            }
+            //左侧是变量
+            if(nx.ed == p + 1){
                 Ret nx1 = unit10(nx.ed + 1);
                 if(!nx1.fl) return nx1;
-                //易错点：直接操作，而非先操作变量nx.val。nx.val作为返回值记得设置。
                 Ret mdy = spmgr.mdy_var(var,nx1.val,op);
-                nx.val = mdy.val;nx.ed = nx1.ed;
+                if(!mdy.fl) return mdy;
+                return Ret(true,mdy.val,nx1.ed,0);
             }
-            return nx;
+            //左侧不止单个变量
+            printf("lvalue required as left operand of assignment: %s\n",op.c_str());return Ret(false);
         }
         //逗号运算符
         Ret unit11(int p){
@@ -492,22 +636,30 @@ class Parser{
             }
             return nx;
         }
-        //declaration只能初始化不能赋值。int a,b,c/*,m = 1*/;
-        //变量声明当然是在最新作用域(已封装)
+        //declaration已经支持变量声明并赋值,但数组仅支持声明
         Ret declaration(int p,int for_init = 0){
             string var = code[++p].token;
             /* 暂时留着,因为莫名其妙出现“Expected variable but get token: ”
             cout <<"dec "<<code[p].token<<" "<<code[p].code<<endl;//
             */
             EXPECT_VAR(code[p]);++p;
-            int val = 0;
-            if(code[p].token == "="){
-                Ret nx = unit10(p + 1);
-                if(!nx.fl) return nx;
-                val = nx.val;
-                p = nx.ed;
+            if(code[p].token == "["){
+                vector<int> sizs;
+                Ret suc = parse_square_brackets(p,sizs);
+                if(!suc.fl) return suc;
+                if(!spmgr.new_array(var,sizs,for_init)) return Ret(false);
+                p = suc.ed;
             }
-            if(!spmgr.new_var(var,val,for_init)) return Ret(false);
+            else{
+                int val = 0;
+                if(code[p].token == "="){
+                    Ret nx = unit10(p + 1);
+                    if(!nx.fl) return nx;
+                    val = nx.val;
+                    p = nx.ed;
+                }
+                if(!spmgr.new_var(var,val,for_init)) return Ret(false);
+            }
             if(code[p].token == ",") return declaration(p,for_init);//补丁：别忘了递归的时候传值...否则for循环只有1个变量被认为是不应该删
             return parse_semicolon(p);
         }
@@ -669,7 +821,7 @@ class Parser{
         //scp_typ：statements应该知道这段语句属于哪个块
         Ret statements(int p,int lim,int scp_typ,int op = 1){
             if(op) spmgr.new_scope(scp_typ);//新建作用域
-            Ret nx;
+            Ret nx(true);
             if(code[p].token != "{"){
                 nx = statement(p);
                 if(!nx.fl) return nx;

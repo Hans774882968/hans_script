@@ -127,3 +127,42 @@ int main(){
     }
     print(ans);//405007
 }
+23
+int main(){
+    int n=4;
+    hanoi(n,1,2,3);
+}
+int k;
+int hanoi(int n,int x,int y,int z)
+{
+    if(n==1)
+        move(x,1,z);
+    else
+    {
+        hanoi(n-1,x,z,y);
+        move(x,n,z);
+        hanoi(n-1,y,x,z);
+    }
+    return 0;
+}
+int move(int getone,int n,int putone)
+{
+    k+=1;
+    print(k,n,getone,putone);
+    return 0;
+}
+/*k=1 n=1 getone=1 putone=2
+k=2 n=2 getone=1 putone=3
+k=3 n=1 getone=2 putone=3
+k=4 n=3 getone=1 putone=2
+k=5 n=1 getone=3 putone=1
+k=6 n=2 getone=3 putone=2
+k=7 n=1 getone=1 putone=2
+k=8 n=4 getone=1 putone=3
+k=9 n=1 getone=2 putone=3
+k=10 n=2 getone=2 putone=1
+k=11 n=1 getone=3 putone=1
+k=12 n=3 getone=2 putone=3
+k=13 n=1 getone=1 putone=2
+k=14 n=2 getone=1 putone=3
+k=15 n=1 getone=2 putone=3*/
