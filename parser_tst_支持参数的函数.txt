@@ -166,3 +166,18 @@ k=12 n=3 getone=2 putone=3
 k=13 n=1 getone=1 putone=2
 k=14 n=2 getone=1 putone=3
 k=15 n=1 getone=2 putone=3*/
+14
+int _;
+int f(){
+    while(_+=1){
+        if(_>=5)return _;
+    }
+}
+int g(int c){
+    while(c+=1) if(c>=5)break;
+    return c;
+}
+int main(){
+    int a=f(),b=g(0);
+    print(a,_,b);int x=g(1+1);print(x);//如果没有多算1次判定，即无bug，应该都是5
+}

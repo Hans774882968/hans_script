@@ -1,0 +1,33 @@
+0
+int main(){
+    int a=1;
+    while(){
+        if(a>=5)break;
+        a+=1;
+    }
+    cout<<a;putchar(32);
+    for(;;a+=1){
+        if(a>=10)break;
+    }
+    cout<<a<<endl;
+}
+0
+int f(){
+    int a=1;
+    while(){
+        if(a>=5)return a;
+        a+=1;
+    }
+}
+int g(int a){
+    for(;;a+=1){
+        if(a>=10)return a;
+    }
+}
+int main(){
+    int a=f();
+    cout<<a;putchar(32);
+    int b=g(a);
+    cout<<b<<endl;
+}
+//以上2例都是5 10才对

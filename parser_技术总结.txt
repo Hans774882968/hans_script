@@ -1,0 +1,60 @@
+0-关于parser.cpp的一些潜规则。
+①设计了一个Ret类，用于同时返回”是否合法“和其他信息。每次调用一个返回Ret类型的函数后，都要做”是否合法“的判定，尽快停止解析过程。格式类似：if(!ret.fl) return ret;一般上层函数已经输出过错误信息。
+②负责解析语句的那些函数都要输入一个起始位置p的指针。如果需要解析括号，一般p都恰好指在括号处。比如statements()指在"{"处。而几大控制结构语句p都指在关键字处。
+
+1-作用域管理器。
+之前是在类里采用vector<map<string,int>> variables;来实现作用域。这个方案简单但是有缺陷，在维护升级的时候会出现不少麻烦。
+其中比较极端的例子是for循环。for循环的作用域管理不能直接交给statements()来管理，于是该函数被迫手动开作用域，需要用参数告诉state
+ments()不要开作用域，并且要记住每个在for_init区域声明的变量，循环结束时不要销毁它们。这样for_statement()会变得很复杂。
+后来我的想法是把变量封装成结构体，记录它是不是for_init区域声明的变量；封装Scope类表示单个作用域，记录每个语句块的产生者是if还是while等。
+稍一思索发现这还是不够的，for循环的代码还是那么长。于是又封装一个ScopeManager，把增删改查变量这些行为变成单个指令。管理器内考虑好所有的情况，外部直接调用即可。
+
+2-当前解析到的位置全局指针idx转变为局部。
+转变为局部的好处很多，比如循环结构要反复回退的，可以少一个tmp。但是这样会产生函数间通信的问题。为了解决它，我们用了一个Ret类，它记录了当前函数解析的“子表达式”是否合法、返回值（函数unit\d+）、结束位置和语句命令（return、break、continue）。
+然后每个有解析语句责任的函数再设一个int p参数表示起始位置即可（如果需要终止位置，尤其是statements()它其实不知道啥时候解析结束，设一个lim，这也是statements()没有提供结束位置信息的原因）。
+
+3-寻找语句块边界（顺便做了括号匹配检查）。
+一个巧妙的递归函数next_statement。比如if语句找边界，使用递归方法：先对当前的if找到块的边界。if之下不是else就结束；是else就看是否是else if。如果是，递归即可。否则最后走一次语句块即可return;。
+
+4-return、break、continue的解析。
+我写码时总是考虑各种各样的报错信息，保证发现一个语法不合法就立刻报错并退出(return Ret(false);)，它的好处很多，比如大大提高了可维护性，以及为下面的算法提供了启发：
+return的原理是类似的。发出CMD_RETURN的自然是statement()，它会传到statements()和若干控制语句，最后到run_function。run_function只需无视该命令，而其他控制语句全部执行并传递CMD_RETURN即可。
+因为我们有规定入口main()，所以return总是合法的，不需要检查。
+下面我提出break语句的算法，不一定正确：
+①判定break的出现合法。在和find_var()一样的范围内找到一个最近的循环语句，合法当且仅当找到。
+②statement()发出命令，statements()当即break并返回命令，if语句传递命令（代码完全不用修改），循环语句执行但不再传递命令。
+continue类似，②改成循环语句也完全不修改（只剩statement和statements）即可。
+
+5-if语句的解析。
+它和next_statement()的递归思想类似。如果碰到了else后有if，就递归调用自身，起始位置是else_pos + 1。但是一定要记住，返回的位置不是else_pos而是next_statement().ed。
+
+6-加入解析数组的功能，重新审视unit10()(实现赋值语句的函数)时，发现了一个麻烦的问题：unit0()需要解析"[]"群并获得vector<int> idxs;unit10()不能再次解析"[]"群，但是又需要获取vector<int> idxs;怎么在不改变unit0()的条件下解决？
+最后采用了一个不优雅的做法：把unit0()算出的idxs缓存到spmgr实例。递归返回后马上到spmgr取cache。
+
+7-putchar、cin、cout。
+putchar应该视为特殊的函数，因为它有int返回值。让run_function()为它特殊处理即可。
+cin和cout不应视为单独的语句，而应视为表达式。比如for(cin>>x;;cout<<x);所以我们采用的方法是unit11()分2个分支，如果以cin、cout开头，就parse_cin(p)、parse_cout(p)(它们仍可正常调用unit10())。否则就调用unit10()。
+《说明》提到没有实现cin、cout的逗号分隔，只是在对">>"的“二义性”耿耿于怀。支持逗号的方法和unit11()下方那个完全一样。
+
+8-支持函数参数。
+run_function()原来只需要提供函数文本的位置。那么现在需要加上计算好的int参数(vector<int>)。而函数所有参数名，最好先在func_and_var()预处理出来并存着。run_function()在新建作用域后取出即可。
+
+9-支持数组。
+①最关键的是解析那堆"[]"，为此实现一个函数是值得的。
+//p：1st"["的位置。结束位置是the last "]"的下一个
+Ret parse_square_brackets(int p,vector<int> &sizs){
+    if(code[p].token != "["){
+        printf("Expected '[' but get token: '%s'\n",code[p].token.c_str());return Ret(false);
+    }
+    while(true){
+        Ret bmatch = match_bracket(p);
+        if(!bmatch.fl) return bmatch;
+        Ret nx = unit11(p + 1);
+        if(!nx.fl) return nx;
+        sizs.push_back(nx.val);
+        p = bmatch.ed;
+        if(code[p].token != "[") break;
+    }
+    return Ret(true,0,p,0);
+}
+②cin需要检查是否两个">>"之间只有一个变量或”变量+若干"[]"“。算法如下：先parse_square_brackets()再用match_bracket()，二者能到达同一位置，即说明两个">>"之间只有”变量+若干"[]"“。

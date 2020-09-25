@@ -1,0 +1,196 @@
+4
+int main(){
+    int a=putchar((putchar(putchar(putchar(6*(9+1)+5)-33)+33+32)-5*10-32-5)%3+9);
+    print(a);putchar(32);print(a);
+}
+/*A a
+a=10
+ a=10*/
+4
+int main(){
+    int a=putchar((putchar(putchar(putchar(6*(9+1)+5)-33)+33+32)-5*10-32-5)%3+9);
+    cout << a<<putchar(32)<<endl;
+}
+23
+int n, a[100];
+
+int main()
+{
+    n=12;a[1]=123,a[2]=21323,a[3]=3224,a[4]=2143,a[5]=23132,a[6]=2443,a[7]=143,a[8]=3243,a[9]=445,a[11]=0b1011101010110,a[10]=7348,a[12]=0xfae;
+    /*n=9,a[1]=6 ,a[2]=1, a[3]=7, a[4]=5, a[5]=1, a[6]=7, a[7]=2, a[8]=2,a[9]= 4;*/
+    int i, j, this_VARIABLE_is_NOT_used;
+    for (int i = 1; i <= n; i += 1)
+        for (int j = i + 1; j <= n; j += 1)
+            if (a[i] > a[j])
+            {
+                int t=a[i];
+                a[i] = a[j];
+                a[j] = t;
+            }
+    for (int i = 1; i <= n; i = i + 1)
+    {
+        cout << a[i];
+        if (i == n) cout << endl; else putchar(32);
+    }
+    cout<<a[1]+a[2]<<endl;
+    return 0;
+}
+/*
+123 143 445 2143 2443 3224 3243 4014 5974 7348 21323 23132
+266
+1 1 2 2 4 5 6 7 7
+2
+*/
+10
+int pf(int x){
+    if(!x)return;
+    cout<<x<<endl;return pf(x-1)+2;
+}
+int x;
+int main(){
+    x=2;
+    int c=pf(x);
+    print(x,c);
+}
+/*2
+1
+x=2 c=4*/
+/*从这里开始，输入方式改变了。先输入n，后面n个整数表示输入流。然后是代码。
+以前的测试用例，所有的“行号”可以取消。因为无输入，输入一个0，后面跟代码即可。
+结束输入用ctrl+z。*/
+2
+114508 6
+#include<iostream>
+#include<cstdio>
+using namespace std;
+int main()
+{int a, b; cin >> a >> b; cout << a + b << endl;}
+10
+9
+6 1 7 5 1 7 2 2 4
+#include<iostream>
+#include<cstdio>
+using namespace std;
+int n, a[100];
+
+
+int main()
+{
+    cin >> n;
+    int i, j, this_VARIABLE_is_NOT_used;
+    for (i = 1; i <= n; i = i + 1) cin >> a[i];
+    for (i = 1; i <= n; i = i + 1)
+    for (j = i + 1; j <= n; j = j + 1)
+    if (a[i] > a[j])
+    {
+        int t;
+        t = a[i];
+        a[i] = a[j];
+        a[j] = t;
+    }
+    for (i = 1; i <= n; i = i + 1)
+    {
+        cout << a[i];
+        if (i == n) cout << endl; else putchar(32);
+    }
+    return 0;
+}
+3
+17 16 2
+int SZ = 205;//fzu2188
+int sh,wo,n;
+int vis[SZ][SZ][2];
+
+int s[SZ*5],w[SZ*5],stp[SZ*5],hd,tl;
+int bfs(){
+    s[tl]=sh,w[tl]=wo,stp[tl]=0,tl+=1;
+    vis[sh][wo][0] = 1;
+    while(hd<tl){
+        int nowsh = s[hd],nowwo = w[hd];
+        for(int i = 0;i <= nowsh;i+=1){
+            for(int j = 0;j <= nowwo;j+=1){
+                if((i && i < j) || i + j > n || i + j <= 0) continue;
+                int nx_sh = sh - nowsh + i,nx_wo = wo - nowwo + j,nx_stp = stp[hd] + 1;
+                if(nx_sh > 0 && nx_sh < nx_wo) continue;//去往的岸
+                if(sh - nx_sh > 0 && sh - nx_sh < wo - nx_wo) continue;//离开的岸
+                if(vis[nx_sh][nx_wo][nx_stp & 1]) continue;
+                vis[nx_sh][nx_wo][nx_stp & 1] = 1;
+                if(((nx_stp & 1) && nx_sh == sh && nx_wo == wo) || (!(nx_stp & 1) && !nx_sh && !nx_wo)) return nx_stp;
+                s[tl]=nx_sh,w[tl]=nx_wo,stp[tl]=nx_stp,tl+=1;
+            }
+        }
+        hd+=1;
+    }
+    return -1;
+}
+
+int main() {
+    cin>>sh>>wo>>n;
+    cout << bfs() << endl;
+    return 0;
+}
+//63
+/*这种应该不会出现吧……
+1
+10
+int main(){
+    int x;cin>>x>>cin;
+    cout<<x<<endl;
+}
+*/
+11
+10 1 2 5 4 3 6 8 7 9 10
+int main(){
+    int a[110],n;cin>>n;
+    for(int i=0;i<n;cin>>a[i]) i+=1;
+    for(int i=1;i<=n;i+=1){
+        cout<<a[i];
+        if(i==n)cout<<endl;else putchar(32);
+    }
+}
+11
+10 1 2 5 4 3 6 8 7 91 10
+int main(){
+    int a[110],n,i;
+    for(cin>>n;i<n;cin>>a[i]) i+=1;
+    for(int i=1;i<=n;i+=1){
+        cout<<a[i];
+        if(i==n)cout<<endl;else putchar(32);
+    }
+}
+11
+10 1 2 5 4 3 6 8 7 91 10
+int main(){
+    int a[110],n,i;
+    for(cin>>n;i<n;cin>>a[i]) i+=1;
+    i=0;
+    for(cout<<n;i<n;cout<<a[i]) i+=1;
+    putchar(10);//全挤在一起是对的
+}
+0
+int kj(int c){
+    if(c==1)return;
+    else cout<<c<<endl;
+}
+int main(){
+    cout<<kj(1)<<endl;cout<<kj(2)<<endl;
+    int a[110],n,i;
+    for(i=0;i<=5;i+=1){
+        if(i&&i%5==0)break;
+        else{}
+    }
+    cout<<i<<endl;//0 2 0 5过了
+}
+0
+int main(){
+    {int x;cout<<x<<endl;}
+    cout<<x<<endl;//报错
+}
+0
+int f(){//现在支持匿名作用域了
+    {int x=-1;cout<<x<<endl;return x;cout<<x<<endl;}
+    cout<<x<<endl;
+}
+int main(){
+    int c=f()+2;cout<<c<<endl;
+}

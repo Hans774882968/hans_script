@@ -3,7 +3,7 @@ int n, a[100];
 
 int main()
 {
-    n=11;a[1]=123,a[2]=21323,a[3]=3224,a[4]=2143,a[5]=23132,a[6]=2443,a[7]=143,a[8]=3243,a[9]=445,a[11]=0b1011101010110,a[10]=7348;
+    n=12;a[1]=123,a[2]=21323,a[3]=3224,a[4]=2143,a[5]=23132,a[6]=2443,a[7]=143,a[8]=3243,a[9]=445,a[11]=0b1011101010110,a[10]=7348,a[12]=0xfae;
     int i, j, this_VARIABLE_is_NOT_used;
     for (int i = 1; i <= n; i += 1)
         for (int j = i + 1; j <= n; j += 1)
@@ -27,6 +27,7 @@ x=2143
 x=2443
 x=3224
 x=3243
+x=4014
 x=5974
 x=7348
 x=21323
@@ -323,3 +324,49 @@ int main() {
 /*ans=14
 ans=16
 _=3*/
+33
+int SZ = 205;//fzu2188
+int sh,wo,n;
+int vis[SZ][SZ][2];
+
+int s[SZ*5],w[SZ*5],stp[SZ*5],hd,tl;
+int bfs(){
+    s[tl]=sh,w[tl]=wo,stp[tl]=0,tl+=1;
+    vis[sh][wo][0] = 1;
+    while(hd<tl){
+        int nowsh = s[hd],nowwo = w[hd];
+        for(int i = 0;i <= nowsh;i+=1){
+            for(int j = 0;j <= nowwo;j+=1){
+                if((i && i < j) || i + j > n || i + j <= 0) continue;
+                int nx_sh = sh - nowsh + i,nx_wo = wo - nowwo + j,nx_stp = stp[hd] + 1;
+                if(nx_sh > 0 && nx_sh < nx_wo) continue;//去往的岸
+                if(sh - nx_sh > 0 && sh - nx_sh < wo - nx_wo) continue;//离开的岸
+                if(vis[nx_sh][nx_wo][nx_stp & 1]) continue;
+                vis[nx_sh][nx_wo][nx_stp & 1] = 1;
+                if(((nx_stp & 1) && nx_sh == sh && nx_wo == wo) || (!(nx_stp & 1) && !nx_sh && !nx_wo)) return nx_stp;
+                s[tl]=nx_sh,w[tl]=nx_wo,stp[tl]=nx_stp,tl+=1;
+            }
+        }
+        hd+=1;
+    }
+    return -1;
+}
+
+int main() {
+    sh=17,wo=18,n=2;
+    int ans=bfs();
+    print(ans);
+    return 0;
+}
+/*全部通过
+3 3 2
+//11
+33 33 3
+//-1
+17 16 2
+63
+15 11 3
+25
+17 18 2
+-1
+*/

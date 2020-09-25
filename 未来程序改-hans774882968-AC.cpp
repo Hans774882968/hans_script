@@ -1,11 +1,340 @@
 #include <bits/stdc++.h>
-#include "lexer.cpp"
 using namespace std;
 typedef long long LL;
 #define rep(i,a,b) for(int i = (a);i <= (b);++i)
 #define re_(i,a,b) for(int i = (a);i < (b);++i)
 #define dwn(i,a,b) for(int i = (a);i >= (b);--i)
 
+//utils.cpp
+//regex_replace不能正确匹配若干反斜杠这种字符串
+string myreplace(string s,string old,string cur){
+    int pos = 0;string ret;
+    while(pos < s.size()){
+        int pos1 = s.find(old,pos);
+        if(pos1 == string::npos){ret += s.substr(pos);break;}
+        else ret += s.substr(pos,pos1 - pos) + cur,pos = pos1 + old.size();
+    }
+    return ret;
+}
+
+string clean_str(string s){
+    s = myreplace(s,"\\\\","\\");
+    s = myreplace(s,"\\\"","\"");
+    return s;
+}
+
+bool judge_binary(string d){
+    re_(i,0,d.size())
+        if(isalpha(d[i]) || d[i] - '0' >= 2)
+            return false;
+    return true;
+}
+bool judge_octal(string d){
+    re_(i,0,d.size())
+        if(isalpha(d[i]) || d[i] - '0' >= 8)
+            return false;
+    return true;
+}
+bool judge_hex(string d){
+    re_(i,0,d.size())
+        if(isalpha(d[i]) && tolower(d[i]) - 'a' >= 6)
+            return false;
+    return true;
+}
+bool judge_integer(string d){
+    if(d[0] == '0'){
+        if(isalpha(d[1])){
+            if(tolower(d[1]) == 'x'){
+                bool legal = judge_hex(d.substr(2));
+                if(!legal){
+                    printf("Illegal hex number: %s\n",d.c_str());
+                    return false;
+                }
+            }
+            else if(tolower(d[1]) == 'b'){
+                bool legal = judge_binary(d.substr(2));
+                if(!legal){
+                    printf("Illegal binary number: %s\n",d.c_str());
+                    return false;
+                }
+            }
+            else{
+                printf("Illegal number: %s\n",d.c_str());
+                return false;
+            }
+        }
+        else{
+            bool legal = judge_octal(d.substr(1));
+            if(!legal){
+                printf("Illegal octal number: %s\n",d.c_str());
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+//'\n'长度4,'a'长度3
+bool judge_char(string s){
+    if(s[1] == '\\') return s.size() == 4;
+    return s.size() == 3;
+}
+
+//trie.cpp
+struct Trie{
+    static const int LEN = 70,ALPHA = 30;
+    int T[LEN][ALPHA],end[LEN],sz,wd_num;
+    map<char,int> mp;int msz;
+    Trie(){
+        msz = sz = wd_num = 0;
+        memset(T[0],0,sizeof T[0]);
+        end[0] = -1;
+    }
+    
+    inline int ID(char x){
+        if(!mp.count(x)) return mp[x] = ++msz;
+        return mp[x];
+    }
+    void insert(string s){
+        int u = 0;
+        for(auto x: s){
+            int v = ID(x);
+            if(!T[u][v]){
+                memset(T[++sz],0,sizeof T[sz]);
+                end[sz] = -1;
+                T[u][v] = sz;
+            }
+            u = T[u][v];
+        }
+        if(end[u] == -1) end[u] = wd_num++;
+    }
+    int in_dict(string s){
+        int u = 0;
+        for(auto x: s){
+            int v = ID(x);
+            if(!T[u][v]) return -1;
+            u = T[u][v];
+        }
+        return end[u];
+    }
+    int get_longest_prefix(string s){
+        int u = 0,len = 0;
+        for(auto x: s){
+            int v = ID(x);
+            if(!T[u][v]) return len;
+            u = T[u][v];
+            ++len;
+        }
+        return len;
+    }
+};
+
+//lexer.cpp
+const int SZ = 10000 + 5;
+const int KWDNUM = 11,SYMNUM = 44,QUONUM = 2;
+const int INTCODE = KWDNUM + SYMNUM + QUONUM + 1;
+
+struct Node{
+    string token;int code;
+    Node(){}
+    Node(string token,int code):token(token),code(code){}
+};
+
+class Lexer{
+    private:
+        string s;int idx;
+        vector<Node> res;
+        static const string kwd[KWDNUM];
+        static const string symbol[SYMNUM];
+        static const string quot[QUONUM];
+        static set<char> symbol_ch;
+        static Trie symbol_dict,kwd_dict;
+    public:
+        Lexer(){idx = 0;}
+        Lexer(string s):s(s){idx = 0;}
+        
+        vector<Node> getRes(){return res;}
+        static void init(){
+            re_(i,0,SYMNUM){
+                for(auto x: symbol[i]) symbol_ch.insert(x);
+                symbol_dict.insert(symbol[i]);
+            }
+            re_(i,0,KWDNUM){
+                kwd_dict.insert(kwd[i]);
+            }
+        }
+        
+        int is_symbol_str(string symb){
+            return symbol_dict.in_dict(symb);
+        }
+        int is_keyword_str(string token){
+            return kwd_dict.in_dict(token);
+        }
+        int is_quote(string token){
+            re_(i,0,QUONUM) if(quot[i][0] == token[0]) return i;
+            return -1;
+        }
+        int get_token_id(string token){
+            int idx = is_keyword_str(token);
+            if(~idx) return idx + 1;
+            idx = is_symbol_str(token);
+            if(~idx) return idx + KWDNUM + 1;
+            idx = is_quote(token);
+            if(~idx) return idx + KWDNUM + SYMNUM + 1;
+            return 0;
+        }
+        const char* get_token_type_name(int code){
+            if(!code) return "variable";
+            if(code <= KWDNUM) return "keyword";
+            if(code <= KWDNUM + SYMNUM) return "symbol";
+            if(code == KWDNUM + SYMNUM + 1) return "const_character";
+            if(code == KWDNUM + SYMNUM + 2) return "const_string";
+            return "integer";
+        }
+        void print_result(){
+            for(auto rs: res) printf("(%s,%s,%d)\n",rs.token.c_str(),get_token_type_name(rs.code),rs.code);
+        }
+        bool is_symbol(char ch){
+            return symbol_ch.find(ch) != symbol_ch.end();
+        }
+        
+        string get_identifier(){
+            int tidx = idx;
+            for(;idx < s.size() && (s[idx] == '_' || isalpha(s[idx]) || isdigit(s[idx]));++idx);
+            return s.substr(tidx,idx - tidx);
+        }
+        //数字的合法性，在遍历res的时候判定
+        string get_int(){
+            int tidx = idx;
+            for(;idx < s.size() && (isdigit(s[idx]) || isalpha(s[idx]));++idx);
+            return s.substr(tidx,idx - tidx);
+        }
+        string get_symbol(){
+            int tidx = idx;
+            //注释符号必须被截断
+            if(s.substr(idx,2) == "//" || s.substr(idx,2) == "/*"){
+                idx += 2;
+                return s.substr(tidx,2);
+            }
+            for(;idx < s.size() && is_symbol(s[idx]);++idx);
+            return s.substr(tidx,idx - tidx);
+        }
+        string get_const_str(){
+            int tidx = idx,slash_state = 0;
+            for(;idx < s.size();++idx){
+                if(s[idx] == '\\')
+                    slash_state = !slash_state;
+                else if(idx > tidx){
+                    if(s[idx] == s[tidx]){//易错点：引号类型应该相同
+                        if(!slash_state) break;
+                        else slash_state = 0;
+                    }
+                    else if(slash_state) slash_state = 0;
+                }
+            }
+            ++idx;
+            return s.substr(tidx,idx - tidx);
+        }
+        
+        int get_next_token_type(char ch){
+            if(ch == '\\') return -1;
+            if(ch == '_' || isalpha(ch)) return 1;
+            if(isdigit(ch)) return 2;
+            if(is_symbol(ch)) return 3;
+            if(ch == '\'' || ch == '"') return 4;
+            return 0;
+        }
+        void skip_comment(string symb){
+            if(symb == "//"){
+                for(;idx < s.size() && s[idx] != '\n';++idx);
+                return;
+            }
+            //注释以"/*"开头的情况
+            int comm_state = 0;
+            for(;idx < s.size() && s.substr(idx - 2,2) != "*/";++idx);
+        }
+        bool post_analyze(){
+            for(auto rs: res){
+                if(rs.code == INTCODE){
+                    bool legal = judge_integer(rs.token);
+                    if(!legal) return false;
+                }
+                else if(rs.token[0] == '\''){
+                    bool legal = judge_char(rs.token);
+                    if(!legal){
+                        printf("Multi-character character constant: %s\n",rs.token.c_str());
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        bool analyze(){
+            idx = 0;
+            while(idx < s.size()){
+                int typ = get_next_token_type(s[idx]);
+                switch(typ){
+                    case -1:{
+                        puts("Backslash out of constant string.");
+                        return false;
+                        break;
+                    }
+                    case 1:{
+                        string iden = get_identifier();
+                        res.push_back(Node(iden,get_token_id(iden)));
+                        break;
+                    }
+                    case 2:{
+                        string d = get_int();
+                        res.push_back(Node(d,INTCODE));
+                        break;
+                    }
+                    case 3:{
+                        string symb = get_symbol();
+                        if(symb == "//" || symb == "/*"){
+                            skip_comment(symb);
+                        }
+                        else{
+                            if(symb.size() > 3 || is_symbol_str(symb) == -1){
+                                int sl = symbol_dict.get_longest_prefix(symb);
+                                idx = idx - symb.size() + sl;//调整idx
+                                symb = symb.substr(0,sl);
+                                //我们对于未知符号，会自动忽略，比如目前还不支持的#
+                            }
+                            res.push_back(Node(symb,get_token_id(symb)));
+                        }
+                        break;
+                    }
+                    //为了方便，不去掉引号
+                    case 4:{
+                        string const_str = get_const_str();
+                        res.push_back(Node(const_str,get_token_id(const_str)));
+                        break;
+                    }
+                    default:{
+                        ++idx;
+                        break;
+                    }
+                }
+            }
+            return post_analyze();
+        }
+};
+
+template<typename Type>inline void read(Type &xx){
+    Type f = 1;char ch;xx = 0;
+    for(ch = getchar();ch < '0' || ch > '9';ch = getchar()) if(ch == '-') f = -1;
+    for(;ch >= '0' && ch <= '9';ch = getchar()) xx = xx * 10 + ch - '0';
+    xx *= f;
+}
+
+const string Lexer::kwd[KWDNUM] = {"int","char","void","if","else","while","for","do","struct","const","return"};
+const string Lexer::symbol[SYMNUM] = {"?",":","~","<",">","!=",">=","<=","==","!","&&","||",",",".",";","(",")","[","]","{","}","+","-","*","/","%","&","|","^","<<",">>","++","--","+=","-=","*=","/=","%=","&=","|=","^=","<<=",">>=","="};
+const string Lexer::quot[QUONUM] = {"'","\""};
+set<char> Lexer::symbol_ch;
+Trie Lexer::symbol_dict,Lexer::kwd_dict;
+
+//parser.cpp
 //词法分析时已经保证整数合法
 int to_int(string d){
     int r = 0;
@@ -272,9 +601,6 @@ class Parser{
     public:
         Parser(){spmgr.new_scope(SCP_GLOBAL);}
         Parser(vector<Node> lex_unit):code(lex_unit){spmgr.new_scope(SCP_GLOBAL);}
-        virtual ~Parser(){
-            cout << "~Parser()" << endl;
-        }
         
         Ret match_bracket(int st){
             int brkt = 1,ed = st + 1;
@@ -937,21 +1263,16 @@ class Parser{
 
 int main(int argc, char** argv) {
     Lexer::init();
-    while(1){
-        Inp::rd();
-        string s;
-        for(char s0[SZ];fgets(s0,SZ,stdin) != NULL;){
-            string tmps = s0;
-            if(tmps.substr(0,5) == "#incl" || tmps.substr(0,5) == "using") continue;
-            s += s0;
-        }
-        Lexer lxr(s);
-        bool legal = lxr.analyze();
-        cout << "is lexical legal: " << (legal ? "true" : "false") << endl;
-        if(!legal) continue;
-        Parser psr(lxr.getRes());
-        legal = psr.analyze();
-        cout << "is syntax legal: " << (legal ? "true" : "false") << endl;
+    Inp::rd();
+    string s;
+    for(char s0[SZ];fgets(s0,SZ,stdin) != NULL;){
+        string tmps = s0;
+        if(tmps.substr(0,5) == "#incl" || tmps.substr(0,5) == "using") continue;
+        s += s0;
     }
+    Lexer lxr(s);
+    bool legal = lxr.analyze();
+    Parser psr(lxr.getRes());
+    legal = psr.analyze();
     return 0;
 }
