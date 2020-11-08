@@ -58,3 +58,11 @@ Ret parse_square_brackets(int p,vector<int> &sizs){
     return Ret(true,0,p,0);
 }
 ②cin需要检查是否两个">>"之间只有一个变量或”变量+若干"[]"“。算法如下：先parse_square_brackets()再用match_bracket()，二者能到达同一位置，即说明两个">>"之间只有”变量+若干"[]"“。
+
+10-猜测意外出现的自定义报错“Expected variable but get token: f1”的原因及其修复。
+/*
+1-Trie树是在词法分析的贪心算法的基础上，用于判定“该词法单元是否是某个关键字”的数据结构。原先判定复杂度为O(Llogn)，用Trie后复杂度为O(L)，L为关键字最大长度，n为关键字个数。起到的是加速作用。
+2-我们需要它来告诉我们一个词法单元是否是变量名。
+3-ALPHA表示对这棵Trie可能出现的最大节点数的预估。如果只看symbol_dict和kwd_dict的insert方法，ALPHA取30是足够的。但是Trie树的另外两个方法也调用了ID方法，使得访问下标大于ALPHA成为可能，如此Trie的行为变得不可预测。
+由于目前代码只允许出现ascii字符集，我们可以暂时把Trie的ALPHA设置为一个比256大的数。
+*/
