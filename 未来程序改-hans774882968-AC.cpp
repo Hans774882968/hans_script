@@ -82,7 +82,7 @@ bool judge_char(string s){
 
 //trie.cpp
 struct Trie{
-    static const int LEN = 70,ALPHA = 30;
+    static const int LEN = 70,ALPHA = 260;
     int T[LEN][ALPHA],end[LEN],sz,wd_num;
     map<char,int> mp;int msz;
     Trie(){
